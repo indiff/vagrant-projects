@@ -28,10 +28,12 @@
 . /vagrant/config/setup.env
 
 export ORACLE_HOME=${DB_HOME}
+export GRID_HOME=${GI_HOME}
 
 echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Config database"
 echo "-----------------------------------------------------------------"
+${GI_HOME}/bin/srvctl config database -d ${DB_NAME}
 ${DB_HOME}/bin/srvctl config database -d ${DB_NAME}
 
 if [ $? -ne 0 ]

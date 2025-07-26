@@ -29,7 +29,7 @@ env:
   oradata_disk_num:   2
   oradata_disk_size: 20
   # ---------------------------------------------
-  db_software:     LINUX.X64_213000_db_home.zip
+  db_software:     LINUX.X64_193000_db_home.zip
   # ---------------------------------------------
   root_password:   welcome1
   oracle_password: welcome1

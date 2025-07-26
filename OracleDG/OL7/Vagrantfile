@@ -66,6 +66,7 @@ VAGRANTFILE_API_VERSION = "2"
 
 # Vagrant Boxes Source Definition
 var_box = 'oraclelinux/7'
+# var_box = 'OL7U9_x86_64-vagrant-virtualbox-b653.box'
 var_url = 'https://oracle.github.io/vagrant-projects/boxes/oraclelinux/7.json'
 
 puts ""

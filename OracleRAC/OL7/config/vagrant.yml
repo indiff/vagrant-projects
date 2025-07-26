@@ -20,7 +20,7 @@ node2:
   u01_disk: ./node2_u01.vdi
 
 shared:
-  prefix_name: rac-213-ol7
+  prefix_name: rac-19c-ol7
   # ---------------------------------------------
   domain  : localdomain
   scan_ip1: 192.168.56.115
@@ -38,22 +38,22 @@ shared:
 env:
   provider: virtualbox
   # ---------------------------------------------
-  gi_software:     LINUX.X64_213000_grid_home.zip
-  db_software:     LINUX.X64_213000_db_home.zip
-  skip_check: false
+  gi_software:     LINUX.X64_193000_grid_home.zip
+  db_software:     LINUX.X64_193000_db_home.zip
+  skip_check: true
   # ---------------------------------------------
-  root_password:   welcome1
-  grid_password:   welcome1
-  oracle_password: welcome1
-  sys_password:    welcome1
-  pdb_password:    welcome1
+  root_password:   oracle
+  grid_password:   oracle
+  oracle_password: oracle
+  sys_password:    oracle
+  pdb_password:    oracle
   # ---------------------------------------------
-  ora_languages:   en,en_GB
+  ora_languages:   zh,zh_CN
   # ---------------------------------------------
   nomgmtdb:        true
   orestart:        false
   # ---------------------------------------------
-  db_name:         DB213H1
+  db_name:         ORCL
   pdb_name:        PDB1
   db_type:         RAC
   cdb:             true

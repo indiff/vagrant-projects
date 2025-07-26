@@ -121,9 +121,13 @@ var_asm_lib_type    = params['shared']['asm_lib_type']
 #
 var_gi_software     = params['env']['gi_software']
 var_gi_software_ver = (var_gi_software.split("_"))[1].to_i
+puts "var_gi_software_ver #{var_gi_software_ver}"
+ 
 #
 var_db_software     = params['env']['db_software']
 var_db_software_ver = (var_db_software.split("_"))[1].to_i
+puts "var_gi_software_ver #{var_gi_software_ver}"
+
 #
 var_skip_check      = params['env']['skip_check']
 #

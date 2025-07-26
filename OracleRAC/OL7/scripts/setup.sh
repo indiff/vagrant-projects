@@ -30,7 +30,7 @@
 # ---------------------------------------------------------------------
 # Functions
 # ---------------------------------------------------------------------
-
+set -x
 run_user_scripts() {
   # run user-defined post-setup scripts
   echo "-----------------------------------------------------------------"
@@ -365,7 +365,8 @@ ${DB_HOME}/bin/dbca -silent -createDatabase \\
   -initParams db_recovery_file_dest_size=2G \\
   -responseFile NO_VALUE \\
   -gdbname ${DB_NAME} \\
-  -characterSet AL32UTF8 \\
+  -characterSet ZHS16GBK \\
+  -nationalCharacterSet AL16UTF16 \\
   -sysPassword ${SYS_PASSWORD} \\
   -systemPassword ${SYS_PASSWORD} \\
 EOF
@@ -458,14 +459,29 @@ then
   GI_APP=$(echo "${GI_SOFTWARE_VER}" | cut -c4)
   GI_COMP=$(echo "${GI_SOFTWARE_VER}" | cut -c5)
   GI_VERSION=${GI_MAJOR}"."${GI_MAINTENANCE}"."${GI_APP}"."${GI_COMP}
+  if [ "$GI_VERSION" == "19.0.0.0" ]; then
+    GI_VERSION="19.0.0"
+  fi
+  if [ "$GI_VERSION" == "19.3.0.0" ]; then
+    GI_VERSION="19.0.0"
+  fi
   GI_HOME="/u01/app/"$GI_VERSION"/grid"
+  echo "GI_HOME $GI_HOME"
 
   DB_MAJOR=$(echo "${DB_SOFTWARE_VER}" | cut -c1-2)
   DB_MAINTENANCE=$(echo "${DB_SOFTWARE_VER}" | cut -c3)
   DB_APP=$(echo "${DB_SOFTWARE_VER}" | cut -c4)
   DB_COMP=$(echo "${DB_SOFTWARE_VER}" | cut -c5)
   DB_VERSION=${DB_MAJOR}"."${DB_MAINTENANCE}"."${DB_APP}"."${DB_COMP}
+  if [ "$DB_VERSION" == "19.0.0.0" ]; then
+    DB_VERSION="19.0.0"
+  fi
+  if [ "$DB_VERSION" == "19.3.0.0" ]; then
+    DB_VERSION="19.0.0"
+  fi
   DB_HOME="/u01/app/oracle/product/"$DB_VERSION"/dbhome_1"
+  echo "DB_HOME $DB_HOME"
+
 
   node1_public_ipoct1=$(echo ${NODE1_PUBLIC_IP} | tr "." " " | awk '{ print $1 }')
   node1_public_ipoct2=$(echo ${NODE1_PUBLIC_IP} | tr "." " " | awk '{ print $2 }')
@@ -641,8 +657,8 @@ fi
 echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Fix locale warnings"
 echo "-----------------------------------------------------------------"
-echo LANG=en_US.utf-8 >> /etc/environment
-echo LC_ALL=en_US.utf-8 >> /etc/environment
+echo LANG=zh_CN.utf-8 >> /etc/environment
+echo LC_ALL=zh_CN.utf-8 >> /etc/environment
 
 # set system time zone
 echo "-----------------------------------------------------------------"

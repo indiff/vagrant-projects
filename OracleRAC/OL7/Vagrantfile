@@ -119,9 +119,14 @@ var_asm_lib_type    = params['shared']['asm_lib_type']
 #
 var_gi_software     = params['env']['gi_software']
 var_gi_software_ver = (var_gi_software.split("_"))[1].to_i
+puts "grid 版本号 var_gi_software_ver #{var_gi_software_ver}"
+
 #
 var_db_software     = params['env']['db_software']
 var_db_software_ver = (var_db_software.split("_"))[1].to_i
+puts "db 版本号 var_db_software_ver #{var_db_software_ver}"
+
+
 #
 var_skip_check      = params['env']['skip_check']
 #
@@ -536,6 +541,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           vb.customize ["modifyvm", :id, "--groups", var_group] unless var_group.nil?
 
           # Attach default guest vdisks
+          puts "Attach default guest vdisks #{box_disks_num}"
           disk_num = 0
           while disk_num < box_disks_num do
             vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', disk_num, '--nonrotational', var_non_rotational]
@@ -543,6 +549,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           end
 
           # Make u01 vdisk
+          puts "Make u01 vdisk createhd #{var_vm2_u01_disk}"
           unless File.exist?(var_vm2_u01_disk)
             vb.customize ['createhd', '--filename', var_vm2_u01_disk, '--size', 100 * 1024]
           end
@@ -550,6 +557,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
           # Making asm disks
           disk_num = disk_num.to_i + 1
+          puts "Making asm disks #{disk_num}"
           num = 0
           while num < var_asm_disk_num do
             asm_disk = var_asm_disk_path + "asm_disk" + num.to_s + ".vdi"
@@ -579,12 +587,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
         # Attach default guest vdisks
         disk_num = 0
+        puts "Attach default guest vdisks #{box_disks_num}"
         while disk_num < box_disks_num do
           vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', disk_num, '--nonrotational', var_non_rotational]
           disk_num += 1
         end
 
         # Make u01 vdisk
+        puts "Make u01 vdisk createhd #{var_vm2_u01_disk}"
         unless File.exist?(var_vm1_u01_disk)
           vb.customize ['createhd', '--filename', var_vm1_u01_disk, '--size', 100 * 1024]
         end
@@ -593,6 +603,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
         if var_orestart == false
           num = 0
+          puts "Making asm disks #{var_asm_disk_num} var_orestart #{var_orestart}"
           while num < var_asm_disk_num do
             asm_disk = var_asm_disk_path + "asm_disk" + num.to_s + ".vdi"
             vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', disk_num, '--device', 0, '--type', 'hdd', '--medium', asm_disk, '--mtype', 'shareable', '--nonrotational', var_non_rotational]
@@ -601,6 +612,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           end
         else
           # Making asm disks
+          puts "Making asm disks #{var_asm_disk_num} var_orestart #{var_orestart}"
           num = 0
           while num < var_asm_disk_num do
             asm_disk = var_asm_disk_path + "asm_disk" + num.to_s + ".vdi"
@@ -636,7 +648,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
    end
 
   # Enable ssh password authentication
+  # sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+  # sudo sed -i 's/^PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+  # sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
   config.vm.provision "shell", inline: <<-SHELL
+    sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^#PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^PermitRootLogin no/PermitRootLogin yes/g' /etc/ssh/sshd_config
+    sed -i 's/^PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
     sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
     /bin/systemctl restart sshd
   SHELL

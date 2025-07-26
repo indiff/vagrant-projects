@@ -71,6 +71,7 @@ mkdir -p ${DB_HOME}
 mkdir -p /u02/oradata
 chown -R oracle:oinstall /u01/app
 chown -R oracle:oinstall /u02/oradata
+# 递归地（-R）为 /u01 目录及其所有子目录和文件，赋予所属用户（u）和所属组（g）读写（rw）权限
 chmod -R ug+rw /u01
 chmod -R ug+rw /u02
 

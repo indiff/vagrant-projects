@@ -30,7 +30,7 @@ echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Install base packages"
 echo "-----------------------------------------------------------------"
 yum install -y deltarpm expect tree unzip zip 
-yum install -y oracle-database-preinstall-21c
+yum install -y oracle-database-preinstall-19c
 
 if [ "${ASM_LIB_TYPE}" == "ASMLIB" ]
 then
@@ -86,7 +86,7 @@ yum install -y unixODBC
 yum install -y chrony
 yum install -y policycoreutils-python
 
-
+rpm -ivh /vagrant/ORCL_software/inotify-tools-3.14-9.el7.x86_64.rpm
 #echo "-----------------------------------------------------------------"
 #echo -e "${INFO}`date +%F' '%T`: Perform yum update"
 #echo "-----------------------------------------------------------------"

@@ -48,8 +48,8 @@ groupadd -g 1007 backupdba
 groupadd -g 1008 dgdba
 groupadd -g 1009 kmdba
 groupadd -g 1010 racdba
-useradd oracle -d /home/oracle -m -p $(echo "welcome1" | openssl passwd -1 -stdin) -g 1001 -G 1002,1003,1006,1007,1008,1009,1010
-useradd grid   -d /home/grid   -m -p $(echo "welcome1" | openssl passwd -1 -stdin) -g 1001 -G 1002,1003,1004,1005,1006
+useradd oracle -d /home/oracle -m -p $(echo "oracle" | openssl passwd -1 -stdin) -g 1001 -G 1002,1003,1006,1007,1008,1009,1010
+useradd grid   -d /home/grid   -m -p $(echo "oracle" | openssl passwd -1 -stdin) -g 1001 -G 1002,1003,1004,1005,1006
 
 echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Set oracle and grid limits"

@@ -29,7 +29,7 @@ echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Install base packages"
 echo "-----------------------------------------------------------------"
 yum install -y deltarpm tree unzip zip 
-yum install -y oracle-database-preinstall-21c
+yum install -y oracle-database-preinstall-19c
 
 echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Disabling firewalld"
