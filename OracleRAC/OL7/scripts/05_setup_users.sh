@@ -93,6 +93,39 @@ chown -R oracle:oinstall ${DB_BASE}
 chown -R oracle:oinstall ${DB_HOME}
 chmod -R ug+rw /u01
 
+
+
+
+# 获取物理内存总字节数
+mem_total=$(awk '/MemTotal/ {print $2}' /proc/meminfo) # 单位：KB
+mem_bytes=$((mem_total * 1024))
+
+# shmmax 设为物理内存一半
+shmmax=$((mem_bytes / 2))
+
+# shmall = shmmax / 页面大小（通常为4096字节）
+pagesize=$(getconf PAGE_SIZE)
+shmall=$((shmmax / pagesize))
+
+echo "kernel.shmmax = $shmmax"
+echo "kernel.shmall = $shmall"
+
+
+# 物理内存为 8GB，kernel.shmmax 可设为 4GB（4294967296）或更大
+cat > /etc/sysctl.conf <<EOF
+kernel.shmall = $shmall
+kernel.shmmax = $shmmax
+kernel.shmmni = 4096
+kernel.sem = 250 32000 100 128
+fs.file-max = 6815744
+fs.aio-max-nr = 1048576
+net.ipv4.ip_local_port_range = 9000 65500
+net.core.rmem_default=262144
+net.core.rmem_max=4194304
+net.core.wmem_default=262144
+net.core.wmem_max=1048576
+EOF
+
 echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Set user env"
 echo "-----------------------------------------------------------------"
@@ -147,6 +180,15 @@ export ORACLE_SID=${DB_NAME}
 EOF
   fi
 fi
+
+## root用户可以直接使用crsctl命令
+cat >> /etc/profile <<EOF
+export PATH=${GI_HOME}/bin:$PATH
+alias cdt='cd ${GI_HOME}/diag/asm/+asm/+ASM*/trace'
+alias cdct='cd ${GI_HOME}/diag/crs/`hostname`/crs/trace'
+alias csr='crsctl status res -t'
+alias csi='crsctl status res -t -init'
+EOF
 
 
 #----------------------------------------------------------

@@ -31,6 +31,7 @@
 # Functions
 # ---------------------------------------------------------------------
 set -x
+rm -f 09*.sh 11*.sh 13*.sh
 run_user_scripts() {
   # run user-defined post-setup scripts
   echo "-----------------------------------------------------------------"
@@ -173,11 +174,19 @@ cat >> /vagrant/scripts/09_gi_installation.sh <<EOF
     oracle.install.config.omsPort=0 \\
     oracle.install.crs.rootconfig.executeRootScript=false
 EOF
+
+cat /vagrant/scripts/09_gi_installation.sh
+echo "请确认/vagrant/scripts/09_gi_installation.sh,或按 Ctrl+C 取消..."
+read
 }
 
 make_11_gi_config() {
 cat > /vagrant/scripts/11_gi_config.sh <<EOF
 . /vagrant/config/setup.env
+echo 'Check cluster configuration'
+${GI_HOME}/bin/crsctl start crs
+${GI_HOME}/bin/crsctl stat res -t
+
 ${GI_HOME}/gridSetup.sh -silent -executeConfigTools \\
     -responseFile ${GI_HOME}/install/response/gridsetup.rsp \\
     INVENTORY_LOCATION=${ORA_INVENTORY} \\
@@ -293,6 +302,10 @@ cat >> /vagrant/scripts/11_gi_config.sh <<EOF
     oracle.install.config.omsPort=0 \\
     oracle.install.crs.rootconfig.executeRootScript=false
 EOF
+
+cat /vagrant/scripts/11_gi_config.sh
+echo "请确认/vagrant/scripts/11_gi_config.sh,按回车继续,或按 Ctrl+C 取消..."
+read
 }
 
 make_13_RDBMS_software_installation() {
@@ -355,6 +368,9 @@ cat >> /vagrant/scripts/13_RDBMS_software_installation.sh <<EOF
         SECURITY_UPDATES_VIA_MYORACLESUPPORT=false \\
         DECLINE_SECURITY_UPDATES=true
 EOF
+cat /vagrant/scripts/13_RDBMS_software_installation.sh
+echo "请确认/vagrant/scripts/13_RDBMS_software_installation.sh,按回车继续,或按 Ctrl+C 取消..."
+read
 }
 
 make_14_create_database() {
@@ -436,6 +452,9 @@ cat >> /vagrant/scripts/14_create_database.sh <<EOF
   -recoveryGroupName +RECO \\
   -asmsnmpPassword ${SYS_PASSWORD}
 EOF
+cat /vagrant/scripts/14_create_database.sh
+echo "请确认/vagrant/scripts/14_create_database.sh,按回车继续,或按 Ctrl+C 取消..."
+read
 }
 
 # ---------------------------------------------------------------------
@@ -701,7 +720,7 @@ if [ `hostname` == ${VM1_NAME} ] && [ "${ORESTART}" == "false" ]
 then
   # unzip grid software 
   echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: Unzip grid software"
+  echo -e "${INFO}`date +%F' '%T`: 解压缩 grid 到目录 ${GI_HOME}"
   echo "-----------------------------------------------------------------"
   cd ${GI_HOME}
   unzip -oq /vagrant/ORCL_software/${GI_SOFTWARE}
@@ -709,7 +728,7 @@ then
 
   # setup ssh equivalence (node1 only)
   echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: Setup user equivalence"
+  echo -e "${INFO}`date +%F' '%T`: 设置用户互信"
   echo "-----------------------------------------------------------------"
   expect /vagrant/scripts/07_setup_user_equ.expect grid   ${GRID_PASSWORD}   ${NODE1_HOSTNAME} ${NODE2_HOSTNAME} ${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh
   expect /vagrant/scripts/07_setup_user_equ.expect oracle ${ORACLE_PASSWORD} ${NODE1_HOSTNAME} ${NODE2_HOSTNAME} ${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh
@@ -723,7 +742,7 @@ elif [ "${ORESTART}" == "true" ]
 then
   # unzip grid software 
   echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: Unzip grid software"
+  echo -e "${INFO}`date +%F' '%T`: 解压缩 grid 到目录 ${GI_HOME}"
   echo "-----------------------------------------------------------------"
   cd ${GI_HOME}
   unzip -oq /vagrant/ORCL_software/${GI_SOFTWARE}
@@ -743,16 +762,18 @@ then
   if [ `hostname` == ${VM1_NAME} ]
     then
     # Setting-up asmfd disks label
+    # 为 Oracle ASMFD 设备打标
     echo "-----------------------------------------------------------------"
-    echo -e "${INFO}`date +%F' '%T`: ASMFD disks label setup"
+    echo -e "${INFO}`date +%F' '%T`: ASMFD disks label setup BOX_DISK_NUM $BOX_DISK_NUM ASM_LIB_TYPE ${ASM_LIB_TYPE}"
     echo "-----------------------------------------------------------------"
     sh /vagrant/scripts/08_asmfd_label_disk.sh $BOX_DISK_NUM $PROVIDER
   fi
 elif [ "${ASM_LIB_TYPE}" == "ASMLIB" ]
 then
   # Setting-up asmlib disks label
+  # 为 Oracle ASMLib 设备打标
   echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: ASMLib disks label setup"
+  echo -e "${INFO}`date +%F' '%T`: ASMLib disks label setup BOX_DISK_NUM $BOX_DISK_NUM ASM_LIB_TYPE ${ASM_LIB_TYPE}"
   echo "-----------------------------------------------------------------"
   sh /vagrant/scripts/08_asmlib_label_disk.sh $BOX_DISK_NUM $PROVIDER
 fi
@@ -776,7 +797,7 @@ then
 
   #-------------------------------------------------------
   echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: Set root user equivalence"
+  echo -e "${INFO}`date +%F' '%T`: 设置用户互信"
   echo "-----------------------------------------------------------------"
   expect /vagrant/scripts/07_setup_user_equ.expect root ${ROOT_PASSWORD} ${NODE1_HOSTNAME} ${NODE2_HOSTNAME} ${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh
 
@@ -823,7 +844,7 @@ then
 
   # unzip rdbms software 
   echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: Unzip RDBMS software"
+  echo -e "${INFO}`date +%F' '%T`: 解压缩rdbms安装包到目录 ${DB_HOME} "
   echo "-----------------------------------------------------------------"
   cd ${DB_HOME}
   unzip -oq /vagrant/ORCL_software/${DB_SOFTWARE}
@@ -924,7 +945,7 @@ then
 
   # unzip rdbms software 
   echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: Unzip RDBMS software"
+  echo -e "${INFO}`date +%F' '%T`: Unzip RDBMS software ${DB_HOME}"
   echo "-----------------------------------------------------------------"
   cd ${DB_HOME}
   unzip -oq /vagrant/ORCL_software/${DB_SOFTWARE}

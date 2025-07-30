@@ -28,6 +28,8 @@
 echo "-----------------------------------------------------------------"
 echo -e "${INFO}`date +%F' '%T`: Setup chronyd service"
 echo "-----------------------------------------------------------------"
+# timedatectl list-timezones grep Shanghai
+timedatectl set-timezone Asia/Shanghai
 systemctl enable chronyd
 systemctl restart chronyd
 chronyc -a makestep
