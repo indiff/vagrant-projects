@@ -28,12 +28,28 @@
 set -x
 . /vagrant/config/setup.env
 
-sh ${ORA_INVENTORY}/orainstRoot.sh
+echo "ORESTART $ORESTART" 
+
 if [ "${ORESTART}" == "false" ]
 then
+  sh ${ORA_INVENTORY}/orainstRoot.sh
+  sleep 10
+  echo "手动创建Data"
+su - grid -c "sqlplus / as sysasm <<EOF
+CREATE DISKGROUP DATA EXTERNAL REDUNDANCY
+  DISK '/dev/ORCL_DISK1_p1','/dev/ORCL_DISK2_p1','/dev/ORCL_DISK3_p1','/dev/ORCL_DISK4_p1'
+  ATTRIBUTE 'au_size'='4M';
+EOF"
   sh ${GI_HOME}/root.sh
+  sleep 10
+  
+  su - grid -c 'asmcmd lsdsk'
   ssh root@${NODE2_HOSTNAME} sh ${ORA_INVENTORY}/orainstRoot.sh
+  sleep 10
   ssh root@${NODE2_HOSTNAME} sh ${GI_HOME}/root.sh
+  sleep 10
+  echo "请查看 ${NODE2_HOSTNAME} 服务器,执行 asmcmd lsdsk"
+  sleep 30 
 else
   sh ${ORA_INVENTORY}/orainstRoot.sh
   sh ${GI_HOME}/root.sh

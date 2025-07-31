@@ -63,6 +63,9 @@ run_user_scripts() {
 make_09_gi_installation() {
 cat > /vagrant/scripts/09_gi_installation.sh <<EOF
 . /vagrant/config/setup.env
+echo "安装前检查"
+${GI_HOME}/runcluvfy.sh stage -pre crsinst -n "${NODE1_HOSTNAME},${NODE2_HOSTNAME}" -verbose
+
 ${GI_HOME}/gridSetup.sh -ignorePrereq -waitforcompletion -silent \\
     -responseFile ${GI_HOME}/install/response/gridsetup.rsp \\
     INVENTORY_LOCATION=${ORA_INVENTORY} \\
@@ -176,8 +179,6 @@ cat >> /vagrant/scripts/09_gi_installation.sh <<EOF
 EOF
 
 cat /vagrant/scripts/09_gi_installation.sh
-echo "请确认/vagrant/scripts/09_gi_installation.sh,或按 Ctrl+C 取消..."
-read
 }
 
 make_11_gi_config() {
@@ -782,6 +783,14 @@ fi
 
 if [ `hostname` == ${VM1_NAME} ] && [ "${ORESTART}" == "false" ]
 then
+
+  #-------------------------------------------------------
+  echo "-----------------------------------------------------------------"
+  echo -e "${INFO}`date +%F' '%T`: 设置用户互信"
+  echo "-----------------------------------------------------------------"
+  expect /vagrant/scripts/07_setup_user_equ.expect root ${ROOT_PASSWORD} ${NODE1_HOSTNAME} ${NODE2_HOSTNAME} ${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh
+
+
   echo "-----------------------------------------------------------------"
   echo -e "${INFO}`date +%F' '%T`: Make GI install command"
   echo "-----------------------------------------------------------------"
@@ -792,14 +801,9 @@ then
   echo -e "${INFO}`date +%F' '%T`: - ASM library   : ${ASM_LIB_TYPE}"
   echo -e "${INFO}`date +%F' '%T`: - without MGMTDB: ${NOMGMTDB}"
   echo "-----------------------------------------------------------------"
-
+  
   su - grid -c 'sh /vagrant/scripts/09_gi_installation.sh'
 
-  #-------------------------------------------------------
-  echo "-----------------------------------------------------------------"
-  echo -e "${INFO}`date +%F' '%T`: 设置用户互信"
-  echo "-----------------------------------------------------------------"
-  expect /vagrant/scripts/07_setup_user_equ.expect root ${ROOT_PASSWORD} ${NODE1_HOSTNAME} ${NODE2_HOSTNAME} ${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh
 
   echo "-----------------------------------------------------------------"
   echo -e "${INFO}`date +%F' '%T`: Grid Infrastructure setup"

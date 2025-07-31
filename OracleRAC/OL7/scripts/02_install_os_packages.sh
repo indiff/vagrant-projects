@@ -31,7 +31,7 @@
 . /vagrant/config/setup.env
 
 if [[ -e /vagrant/ORCL_software/oracle_rac_rpms.zip ]]; then
-  yum install -y /vagrant/ORCL_software/unzip-6.0-24.0.1.el7_9.x86_64.rpm
+  yum install -y /vagrant/ORCL_software/unzip*.rpm
   TMP_RPM_DIR=/tmp/oracle_rac_rpms
   unzip -o /vagrant/ORCL_software/oracle_rac_rpms.zip -d $TMP_RPM_DIR
   yum install -y $TMP_RPM_DIR/*.rpm
@@ -101,6 +101,7 @@ else
   yum install -y unixODBC                 # ODBC 支持
   yum install -y chrony                   # 时间同步服务
   yum install -y policycoreutils-python   # SELinux 管理工具
+  yum install readline rlwrap -y
 fi
 
 # 安装 inotify 工具包（通过本地 rpm 包）

@@ -1,0 +1,1 @@
+exec dbms_auto_task_admin.disable(client_name   => 'auto space advisor',operation => NULL,window_name => NULL);

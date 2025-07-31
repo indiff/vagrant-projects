@@ -134,23 +134,37 @@ if [ `hostname` == ${NODE1_HOSTNAME} ]; then
     cat >> /home/grid/.bash_profile << EOF
 export ORACLE_HOME=${GI_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
 export ORACLE_SID=+ASM1
+alias sqlplus='rlwrap sqlplus'
 EOF
     cat >> /home/oracle/.bash_profile << EOF
 export ORACLE_HOME=${DB_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
 export ORACLE_SID=${DB_NAME}1
+alias sqlplus='rlwrap sqlplus'
+alias rman='rlwrap rman'
 EOF
   else
     cat >> /home/grid/.bash_profile << EOF
 export ORACLE_HOME=${GI_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
 export ORACLE_SID=+ASM
+alias sqlplus='rlwrap sqlplus'
 EOF
     cat >> /home/oracle/.bash_profile << EOF
 export ORACLE_HOME=${DB_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
 export ORACLE_SID=${DB_NAME}
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
+alias sqlplus='rlwrap sqlplus'
+alias rman='rlwrap rman'
 EOF
   fi
 fi
@@ -160,23 +174,37 @@ if [ `hostname` == ${NODE2_HOSTNAME} ]; then
     cat >> /home/grid/.bash_profile << EOF
 export ORACLE_HOME=${GI_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
 export ORACLE_SID=+ASM2
+alias sqlplus='rlwrap sqlplus'
 EOF
     cat >> /home/oracle/.bash_profile << EOF
 export ORACLE_HOME=${DB_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
 export ORACLE_SID=${DB_NAME}2
+alias sqlplus='rlwrap sqlplus'
+alias rman='rlwrap rman'
 EOF
   else
     cat >> /home/grid/.bash_profile << EOF
 export ORACLE_HOME=${GI_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
 export ORACLE_SID=+ASM
+alias sqlplus='rlwrap sqlplus'
 EOF
     cat >> /home/oracle/.bash_profile << EOF
 export ORACLE_HOME=${DB_HOME}
 export PATH=\$ORACLE_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$ORACLE_HOME/bin:/bin:/usr/bin:/usr/local/bin:
+export CLASSPATH=$ORACLE_HOME/JRE:$ORACLE_HOME/jlib:$ORACLE_HOME/rdbms/jlib
 export ORACLE_SID=${DB_NAME}
+alias sqlplus='rlwrap sqlplus'
+alias rman='rlwrap rman'
 EOF
   fi
 fi

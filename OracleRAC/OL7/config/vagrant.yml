@@ -40,7 +40,7 @@ env:
   # ---------------------------------------------
   gi_software:     LINUX.X64_193000_grid_home.zip
   db_software:     LINUX.X64_193000_db_home.zip
-  skip_check: true
+  skip_check: false
   # ---------------------------------------------
   root_password:   oracle
   grid_password:   oracle

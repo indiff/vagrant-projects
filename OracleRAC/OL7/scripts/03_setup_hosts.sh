@@ -62,6 +62,7 @@ echo -e "${INFO}`date +%F' '%T`: Setup /etc/resolv.conf"
 echo "-----------------------------------------------------------------"
 cat > /etc/resolv.conf <<EOF
 search ${DOMAIN_NAME}
+nameserver 8.8.8.8
 EOF
 
 #----------------------------------------------------------
