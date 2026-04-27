@@ -1,10 +1,5 @@
 #!/bin/bash
 
-#export SIDB_IMAGE='database/free:latest'
-#export GSM_IMAGE='database/gsm:latest'
-#export SIDB_IMAGE='phx.ocir.io/intsanjaysingh/db-repo/oracle/database:RDBMS_23.5.0.24.07DBRU_LINUX.X64_240710.1.FREE-GIAAS'
-#export GSM_IMAGE='phx.ocir.io/intsanjaysingh/db-repo/oracle/database-gsm:RDBMS_23.5.0.24.07DBRU_LINUX.X64_240710.1.FREE-GIAAS'
-
 export PODMANVOLLOC='/scratch/oradata'
 export NETWORK_INTERFACE='eth0'
 export NETWORK_SUBNET="10.0.20.0/20"
