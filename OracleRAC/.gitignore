@@ -6,3 +6,6 @@ CVS
 .zip
 *.swp
 
+# Per-project vagrant config may contain credentials — commit .example only.
+*/config/vagrant.yml
+

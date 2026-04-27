@@ -11,14 +11,14 @@ host1:
 env:
   provider: virtualbox
   # ---------------------------------------------
-  prefix_name: vgt-235-gdd
+  prefix_name: gdd23-ol9
   # ---------------------------------------------
   network:     hostonly
   netmask:     
   gateway:     
   domain:      localdomain
   # ---------------------------------------------
-  dns_public_ip: 192.168.178.1
+  dns_public_ip: 8.8.8.8
   # ---------------------------------------------
   oradata_disk_path:
   oradata_disk_num:   2
@@ -48,7 +48,7 @@ env:
 #env:
 #  provider: libvirt
 #  # ---------------------------------------------
-#  prefix_name: vgt-235-gdd
+#  prefix_name: gdd-host
 #  # ---------------------------------------------
 #  network:     hostonly
 #  netmask:     
@@ -57,7 +57,7 @@ env:
 #  domain:      localdomain
 #  bridge_nic:    
 #  # ---------------------------------------------
-#  dns_public_ip: 192.168.178.1
+#  dns_public_ip: 8.8.8.8
 #  # ---------------------------------------------
 #  storage_pool_name: Vagrant_KVM_Storage
 #  oradata_disk_num:   2

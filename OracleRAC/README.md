@@ -1,6 +1,6 @@
-# Oracle Real Application Cluster (RAC) on Oracle Linux 7, 8 or 9  Vagrant projects
+# Oracle Real Application Cluster (RAC) 19.3, 21.3 or 23.26.1  Vagrant projects
 
-This directory contains Vagrant projects to provision Oracle Real Application Cluster (RAC) on Oracle Linux 7, 8 or 9 automatically, using Vagrant and a shell script.
+This directory contains Vagrant projects to provision Oracle Real Application Cluster (RAC) 19.3, 21.3 or 23.26.1 automatically, using Vagrant and a shell script.
 
 ## Prerequisites
 
