@@ -23,7 +23,7 @@ yum install -y oracle-database-preinstall-19c
 log_section "正在安装集群前置依赖"
 yum install -y bc ksh libaio libaio-devel net-tools nfs-utils \
                policycoreutils-python sysstat smartmontools chrony \
-               dnsmasq bind-utils
+               dnsmasq bind-utils rlwrap
 
 log_section "正在禁用 firewalld"
 systemctl stop    firewalld 2>/dev/null || true

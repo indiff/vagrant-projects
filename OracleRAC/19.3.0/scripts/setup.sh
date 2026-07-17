@@ -18,7 +18,8 @@ set -o nounset
 set -o pipefail
 
 SCRIPT_DIR="/vagrant/scripts"
-
+: "${VAGRANT_PROVISION:=}"
+echo "VAGRANT_PROVISION $VAGRANT_PROVISION"
 # Env vars supplied by Vagrantfile — fail fast if any are missing.
 for v in PROVIDER BOX_DISK_NUM SYSTEM_TIMEZONE PREFIX_NAME \
          VM1_NAME VM2_NAME DOMAIN \
@@ -175,7 +176,7 @@ if [[ "${PROVIDER}" == "virtualbox" ]] && ! mountpoint -q /vagrant; then
 fi
 
 log_section "正在修复 locale 警告"
-for line in 'LANG=en_US.utf-8' 'LC_ALL=en_US.utf-8'; do
+for line in 'LANG=zh_CN.utf-8' 'LC_ALL=zh_CN.utf-8'; do
   grep -qxF "${line}" /etc/environment || echo "${line}" >> /etc/environment
 done
 
@@ -222,7 +223,7 @@ is_node1="false"
 [[ "${current_host}" == "${VM1_NAME}" ]] && is_node1="true"
 
 # -------------------- node1 only (cluster) OR node1 (orestart) -------
-if [[ "${is_node1}" == "true" && "${ORESTART}" == "false" ]] \
+if [[ "${VAGRANT_PROVISION}" != "true" && "${is_node1}" == "true" && "${ORESTART}" == "false" ]] \
    || [[ "${ORESTART}" == "true" ]]; then
 
   log_section "正在准备 Grid Infrastructure 安装介质"
@@ -299,7 +300,7 @@ done
 if [[ "${ORESTART}" == "true" ]]; then
   log_section "正在在 ${current_host} 上将 root SSH 重新锁定为仅密钥登录"
   bash "${SCRIPT_DIR}/00_configure_root_ssh.sh" prohibit-password
-elif [[ "${is_node1}" == "true" ]]; then
+elif [[ "${VAGRANT_PROVISION}" != "true" && "${is_node1}" == "true" ]]; then
   log_section "正在在整个集群中将 root SSH 重新锁定为仅密钥登录"
   ssh -o StrictHostKeyChecking=no "root@${VM2_NAME}" \
     "bash ${SCRIPT_DIR}/00_configure_root_ssh.sh prohibit-password"

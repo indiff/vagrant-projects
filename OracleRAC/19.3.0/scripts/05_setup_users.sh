@@ -116,6 +116,17 @@ export ORACLE_HOME='${GI_HOME}'
 export ORACLE_SID='+ASM${sid_suffix_grid}'
 export PATH="\${ORACLE_HOME}/bin:\${PATH}"
 export LD_LIBRARY_PATH="\${ORACLE_HOME}/lib:\${LD_LIBRARY_PATH:-}"
+alias acd="cd \$ORACLE_BASE/diag/rdbms/*/\$ORACLE_SID/trace"
+alias netadmin="cd \$ORACLE_HOME/network/admin"
+alias dbs="cd \$ORACLE_HOME/dbs"
+alias dblog="tail -200f \$ORACLE_BASE/diag/rdbms/*/\$ORACLE_SID/trace/alert_\$ORACLE_SID.log"
+alias alert="echo \$ORACLE_BASE/diag/rdbms/*/\$ORACLE_SID/trace/alert_\$ORACLE_SID.log"
+export PS1="[\u@\h:\w]$ "
+alias sqlplus='rlwrap sqlplus'
+alias rman='rlwrap rman'
+alias adrci='rlwrap adrci'
+alias dgmgrl='rlwrap dgmgrl'
+alias sas='rlwrap sqlplus / as sysdba'
 EOF
 chown grid:oinstall /home/grid/.bash_profile
 chmod 0644          /home/grid/.bash_profile
@@ -129,6 +140,17 @@ export ORACLE_HOME='${DB_HOME}'
 export ORACLE_SID='${DB_NAME}${sid_suffix_db}'
 export PATH="\${ORACLE_HOME}/bin:\${PATH}"
 export LD_LIBRARY_PATH="\${ORACLE_HOME}/lib:\${LD_LIBRARY_PATH:-}"
+alias acd="cd \$ORACLE_BASE/diag/rdbms/*/\$ORACLE_SID/trace"
+alias netadmin="cd \$ORACLE_HOME/network/admin"
+alias dbs="cd \$ORACLE_HOME/dbs"
+alias dblog="tail -200f \$ORACLE_BASE/diag/rdbms/*/\$ORACLE_SID/trace/alert_\$ORACLE_SID.log"
+alias alert="echo \$ORACLE_BASE/diag/rdbms/*/\$ORACLE_SID/trace/alert_\$ORACLE_SID.log"
+export PS1="[\u@\h:\w]$ "
+alias sqlplus='rlwrap sqlplus'
+alias rman='rlwrap rman'
+alias adrci='rlwrap adrci'
+alias dgmgrl='rlwrap dgmgrl'
+alias sas='rlwrap sqlplus / as sysdba'
 EOF
 chown oracle:oinstall /home/oracle/.bash_profile
 chmod 0644            /home/oracle/.bash_profile
