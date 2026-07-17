@@ -11,11 +11,14 @@
 #   Args:
 #     $1 = PermitRootLogin mode (yes | prohibit-password)
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于在预配前后切换 root SSH 策略，兼顾自动化和安全性。
+
 . /vagrant/scripts/_common.sh
 require_root
 
 if [[ $# -ne 1 ]]; then
-  log_error "usage: $0 <yes|prohibit-password>"
+  log_error "用法：$0 <yes|prohibit-password>"
   exit 1
 fi
 
@@ -27,11 +30,12 @@ sshd_override="${sshd_dropin_dir}/00-oracle-rac-bootstrap.conf"
 case "${mode}" in
   yes|prohibit-password) ;;
   *)
-    log_error "unsupported PermitRootLogin mode '${mode}'"
+    log_error "不支持的 PermitRootLogin 模式：'${mode}'"
     exit 1
     ;;
 esac
 
+# 中文：集中处理 sshd 选项，保证重复执行时仍然幂等。
 set_sshd_option() {
   local key="$1" value="$2"
   if grep -Eq "^[#[:space:]]*${key}[[:space:]]+" "${sshd_config}"; then
@@ -73,4 +77,4 @@ fi
 /usr/sbin/sshd -t -f "${sshd_config}"
 systemctl restart sshd
 
-log_success "Configured sshd: PermitRootLogin ${mode}"
+log_success "已配置 sshd：PermitRootLogin ${mode}"

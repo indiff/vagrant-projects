@@ -21,12 +21,17 @@
 #    scoter     03/19/19 - Creation
 #
 
+# 中文说明：
+# - 安装并配置 Oracle REST Data Services。
+# - 创建参数文件、启动 systemd 服务并输出访问入口。
+
 . /home/oracle/.bashrc 
 
 export ORACLE_PWD=`cat /vagrant/apex-pwd`
 rm -f /vagrant/apex-pwd
 
 # Install ORDS
+# 中文：解压 ORDS 并将其安装目录写入 oracle 用户环境变量。
 mkdir $ORACLE_BASE/ords
 export ORDS_HOME=$ORACLE_BASE/ords
 echo "export ORDS_HOME=$ORACLE_BASE/ords" >> /home/oracle/.bashrc
@@ -34,14 +39,14 @@ cd  $ORDS_HOME
 ORDS_INSTALL=$(find /vagrant -maxdepth 1 -name "ords[_-]*.*.zip" -type f | tail -1)
 
 if [[ -z ${ORDS_INSTALL} || ! -r "${ORDS_INSTALL}" ]]; then
-  echo 'INSTALLER: Could not find ORDS installer file. Exiting.'
+  echo 'INSTALLER：未找到 ORDS 安装文件，正在退出。'
   exit 1
 fi
 
 unzip $ORDS_INSTALL
 chown -R oracle:oinstall $ORDS_HOME
 
-echo 'INSTALLER: Oracle Rest Data Services extracted to ORACLE_BASE'
+echo 'INSTALLER：已将 Oracle Rest Data Services 解压到 ORACLE_BASE'
 
 # Create config directory
 su -l oracle -c "$ORACLE_HOME/jdk/bin/java -jar $ORDS_HOME/ords.war configdir $ORDS_HOME/config"
@@ -49,6 +54,7 @@ su -l oracle -c "mkdir -p $ORDS_HOME/config/ords/standalone"
 su -l oracle -c "mkdir -p $ORDS_HOME/config/ords/doc_root"
 
 # Configure ORDS
+# 中文：生成静默安装参数文件，后续由 ords.war 一次性完成配置。
 cat > $ORDS_HOME/params/ords_params.properties << EOF
 db.hostname=localhost
 db.port=1521
@@ -96,14 +102,15 @@ EOF
 # Fix permissions on ORDS standalone directories
 chown -R oracle:oinstall $ORACLE_BASE/ords
 
-echo 'INSTALLER: Oracle Rest Data Services configuration created'
+echo 'INSTALLER：Oracle Rest Data Services 配置已创建'
 
 # Create and configure ORDS Database Users/Objects
 su -l oracle -c "$ORACLE_HOME/jdk/bin/java -jar $ORDS_HOME/ords.war setup --parameterFile $ORDS_HOME/params/ords_params.properties --silent"
 
-echo 'INSTALLER: Oracle Rest Data Services installation completed'
+echo 'INSTALLER：Oracle Rest Data Services 安装已完成'
 
 # Start ORDS service
+# 中文：通过 systemd 持续托管 ORDS standalone 服务。
 export JAVA_HOME=$ORACLE_HOME/jdk/bin
 cat > /etc/systemd/system/ords.service << EOF
 [Unit]
@@ -120,14 +127,14 @@ SyslogIdentifier=ords
 WantedBy=multi-user.target
 EOF
 systemctl enable --now ords
-echo 'INSTALLER: Oracle Rest Data Services started'
+echo 'INSTALLER：Oracle Rest Data Services 已启动'
 
 echo ""
-echo "INSTALLER: APEX/ORDS Installation Completed";
-echo "INSTALLER: You can access APEX by your Host Operating System at following URL:";
-echo "INSTALLER: http://localhost:8080/ords/";
-echo "INSTALLER: Access granted with:";
-echo "INSTALLER: Workspace: internal";
-echo "INSTALLER: Username:  admin";
-echo "INSTALLER: Password:  ${ORACLE_PWD}";
+echo "INSTALLER：APEX/ORDS 安装已完成";
+echo "INSTALLER：你可以通过宿主机访问以下 APEX URL：";
+echo "INSTALLER：http://localhost:8080/ords/";
+echo "INSTALLER：登录信息如下：";
+echo "INSTALLER：Workspace：internal";
+echo "INSTALLER：Username：admin";
+echo "INSTALLER：Password：${ORACLE_PWD}";
 echo ""

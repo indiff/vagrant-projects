@@ -12,6 +12,11 @@
 #           RAC Pack, Cloud Innovation and Solution Engineering Team
 #------------------------------------------------------------------------------
 
+# 中文说明：
+# - 该文件会校验 config/vagrant.yml、安装介质和 provider 参数。
+# - 校验通过后，为主库和备库生成虚拟机定义并串联 Oracle Data Guard 预配流程。
+
+
 require 'yaml'
 require 'ipaddr'
 
@@ -36,14 +41,14 @@ DB_MAJOR   = '23'
 puts ""
 puts "-------------------------------------------------------------------"
 puts "  #{PROJECT_TITLE}"
-puts "  Vagrant project for VirtualBox or KVM/libvirt"
+puts "  适用于 VirtualBox 或 KVM/libvirt 的 Vagrant 项目"
 puts "  Copyright (c) 2018-2026 Oracle and/or its affiliates"
 puts "-------------------------------------------------------------------"
 puts ""
 
 # --------------------------- Helpers -----------------------------------------
 def fatal(msg)
-  warn "ERROR: #{msg}"
+  warn "错误：#{msg}"
   exit 1
 end
 
@@ -55,11 +60,11 @@ def fetch_required(hash, *path)
   node = hash
   path.each do |key|
     unless node.is_a?(Hash) && node.key?(key)
-      fatal "missing required config key: #{path.map(&:to_s).join('.')}"
+      fatal "缺少必需的配置键：#{path.map(&:to_s).join('.')}"
     end
     node = node[key]
   end
-  fatal "config key #{path.map(&:to_s).join('.')} is empty" if node.nil? || node.to_s.strip.empty?
+  fatal "配置键 #{path.map(&:to_s).join('.')} 为空" if node.nil? || node.to_s.strip.empty?
   node
 end
 
@@ -73,13 +78,14 @@ def fetch_optional(hash, *path, default: nil)
 end
 
 # --------------------------- Config load -------------------------------------
+# 中文：先读取并校验外部配置，避免错误参数进入后续预配阶段。
 config_path = File.expand_path('config/vagrant.yml', __dir__)
-fatal "config file not found: #{config_path}" unless File.exist?(config_path)
+fatal "未找到配置文件：#{config_path}" unless File.exist?(config_path)
 
 begin
   params = YAML.load_file(config_path)
 rescue => e
-  fatal "failed to parse #{config_path}: #{e.message}"
+  fatal "解析 #{config_path} 失败：#{e.message}"
 end
 
 # --------------------------- Extract config ----------------------------------
@@ -118,43 +124,43 @@ var_adg             = fetch_required(params, 'env', 'adg')
 
 # --------------------------- Validation --------------------------------------
 unless %w[libvirt virtualbox].include?(var_provider_name)
-  fatal "'env.provider' must be 'libvirt' or 'virtualbox' (got: '#{var_provider_name}')"
+  fatal "'env.provider' 必须为 'libvirt' 或 'virtualbox'（当前值：'#{var_provider_name}'）"
 end
 
 unless var_prefix_name.match?(/\A[0-9a-zA-Z-]{1,14}\z/)
-  fatal "'env.prefix_name' must be 1-14 chars of [0-9a-zA-Z-] (got: '#{var_prefix_name}')"
+  fatal "'env.prefix_name' 必须是 1-14 个 [0-9a-zA-Z-] 字符（当前值：'#{var_prefix_name}'）"
 end
 
-fatal "'host1.mem_size' must be >= 6144 MB (got: #{var_vm1_mem_size})" if var_vm1_mem_size < 6144
-fatal "'host2.mem_size' must be >= 6144 MB (got: #{var_vm2_mem_size})" if var_vm2_mem_size < 6144
+fatal "'host1.mem_size' 必须 >= 6144 MB（当前值：#{var_vm1_mem_size}）" if var_vm1_mem_size < 6144
+fatal "'host2.mem_size' 必须 >= 6144 MB（当前值：#{var_vm2_mem_size}）" if var_vm2_mem_size < 6144
 
-[true, false].include?(var_cdb) || fatal("'env.cdb' must be true or false (got: #{var_cdb.inspect})")
-[true, false].include?(var_adg) || fatal("'env.adg' must be true or false (got: #{var_adg.inspect})")
+[true, false].include?(var_cdb) || fatal("'env.cdb' 必须为 true 或 false（当前值：#{var_cdb.inspect}）")
+[true, false].include?(var_adg) || fatal("'env.adg' 必须为 true 或 false（当前值：#{var_adg.inspect}）")
 
-fatal "'env.oradata_disk_num' must be >= 2 (got: #{var_oradata_disk_num})"  if var_oradata_disk_num  < 2
-fatal "'env.oradata_disk_size' must be >= 10 GB (got: #{var_oradata_disk_size})" if var_oradata_disk_size < 10
+fatal "'env.oradata_disk_num' 必须 >= 2（当前值：#{var_oradata_disk_num}）"  if var_oradata_disk_num  < 2
+fatal "'env.oradata_disk_size' 必须 >= 10 GB（当前值：#{var_oradata_disk_size}）" if var_oradata_disk_size < 10
 
 %w[host1.public_ip host1.private_ip host2.public_ip host2.private_ip].each do |label|
   group, key = label.split('.')
   val = params[group][key]
-  fatal "#{label} is not a valid IP address (got: '#{val}')" unless valid_ip?(val)
+  fatal "#{label} 不是有效的 IP 地址（当前值：'#{val}'）" unless valid_ip?(val)
 end
 
-fatal "'env.db_name' is empty"    if var_db_name.to_s.empty?
+fatal "'env.db_name' 为空"    if var_db_name.to_s.empty?
 if var_cdb == true
-  fatal "'env.pdb_name' is required when cdb=true"     if var_pdb_name.to_s.empty?
-  fatal "'env.pdb_password' is required when cdb=true" if var_pdb_password.to_s.empty?
+  fatal "当 cdb=true 时，必须提供 'env.pdb_name'"     if var_pdb_name.to_s.empty?
+  fatal "当 cdb=true 时，必须提供 'env.pdb_password'" if var_pdb_password.to_s.empty?
 end
 
 zip_path = File.expand_path("./ORCL_software/#{var_db_software}", __dir__)
 fatal "installer zip not found: #{zip_path}\n  Place the Oracle Database #{EXPECTED_DB_SOFTWARE_PREFIX[/\d+/]}* zip into ORCL_software/." unless File.exist?(zip_path)
 
 unless var_db_software.start_with?(EXPECTED_DB_SOFTWARE_PREFIX)
-  fatal "'env.db_software' (#{var_db_software}) does not match this project (expected prefix: #{EXPECTED_DB_SOFTWARE_PREFIX})"
+  fatal "'env.db_software'（#{var_db_software}）与当前项目不匹配（期望前缀：#{EXPECTED_DB_SOFTWARE_PREFIX}）"
 end
 
 checksum_path = File.expand_path('./db_installer.cksum', __dir__)
-fatal "installer checksum file not found: #{checksum_path}" unless File.exist?(checksum_path)
+fatal "未找到安装校验文件：#{checksum_path}" unless File.exist?(checksum_path)
 
 checksum_entry = nil
 File.foreach(checksum_path) do |line|
@@ -170,11 +176,11 @@ File.foreach(checksum_path) do |line|
   end
 end
 
-fatal "no checksum entry for '#{var_db_software}' found in #{checksum_path}" unless checksum_entry
+fatal "在 #{checksum_path} 中未找到 '#{var_db_software}' 的校验条目" unless checksum_entry
 
 # --------------------------- Provider defaults -------------------------------
 provider = var_provider_name.to_sym
-puts "Provider: #{provider}"
+puts "Provider：#{provider}"
 puts ""
 
 box_disks_num = 1
@@ -213,9 +219,9 @@ required_plugins << 'vagrant-libvirt' if var_provider_name == 'libvirt'
 
 required_plugins.each do |plugin|
   unless Vagrant.has_plugin?(plugin)
-    puts "Installing missing Vagrant plugin: #{plugin}"
+    puts "正在安装缺失的 Vagrant 插件：#{plugin}"
     unless system("vagrant plugin install #{plugin}")
-      fatal "failed to install Vagrant plugin '#{plugin}'"
+      fatal "安装 Vagrant 插件 '#{plugin}' 失败"
     end
   end
 end
@@ -231,6 +237,7 @@ else
 end
 
 # --------------------------- VM definition -----------------------------------
+# 中文：根据 provider 差异分别定义磁盘、网络和统一预配入口。
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box               = BOX_NAME
   config.vm.box_url           = BOX_URL

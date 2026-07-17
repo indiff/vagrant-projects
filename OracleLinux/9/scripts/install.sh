@@ -9,15 +9,20 @@
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
 
-echo 'INSTALLER: Started up'
+# 中文说明：
+# - 此脚本更新 Oracle Linux 基础系统，并修复实验环境所需的 locale 或引导配置。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
 
+echo '安装程序：已启动'
+
+# 先更新基础系统，确保镜像处于最新补丁状态。
 # get up to date
 dnf upgrade -y
 
-echo 'INSTALLER: System updated'
+echo '安装程序：系统已更新'
 
 # fix locale warning
 echo LANG=en_US.utf-8 >> /etc/environment
 echo LC_ALL=en_US.utf-8 >> /etc/environment
 
-echo 'INSTALLER: Locale set'
+echo '安装程序：区域设置已完成'

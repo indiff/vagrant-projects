@@ -12,23 +12,27 @@
 #
 
 # Abort on any error
+# 中文说明：
+# 用于校验安装介质、准备系统依赖，并以静默方式安装或创建 Oracle 数据库。
+
 set -e
 
-echo 'INSTALLER: Started up'
+echo 'INSTALLER: 已启动'
 
+# 中文：先确认安装介质可用，再继续系统与数据库安装。
 # verify that database installer is present and valid
-echo 'INSTALLER: Verifying database installer file'
+echo 'INSTALLER: 正在校验数据库安装文件'
 
 sha256sum --check /vagrant/db_installer.sha256 || {
   cat << EOF
 
-INSTALLER: Database installer file missing or invalid.
-           Destroy this VM (vagrant destroy), then
-           make sure that the database installer file
-           is in the same directory as the Vagrantfile,
-           and that its SHA-256 digest matches the
-           value in the db_installer.sha256 file,
-           before running vagrant up again.
+INSTALLER: 数据库安装文件缺失或无效。
+           请销毁此 VM（vagrant destroy），然后
+           请确认数据库安装文件
+           与 Vagrantfile 位于同一目录中，
+           且其 SHA-256 摘要与
+           db_installer.sha256 文件中的值一致，
+           然后再重新运行 vagrant up。
 
 EOF
   exit 1
@@ -37,23 +41,23 @@ EOF
 # get up to date
 yum upgrade -y
 
-echo 'INSTALLER: System updated'
+echo 'INSTALLER: 系统已更新'
 
 # fix locale warning
 yum reinstall -y glibc-common
 echo LANG=en_US.utf-8 >> /etc/environment
 echo LC_ALL=en_US.utf-8 >> /etc/environment
 
-echo 'INSTALLER: Locale set'
+echo 'INSTALLER: 区域设置已完成'
 
 # set system time zone
 sudo timedatectl set-timezone $SYSTEM_TIMEZONE
-echo "INSTALLER: System time zone set to $SYSTEM_TIMEZONE"
+echo "INSTALLER: 系统时区已设置为 $SYSTEM_TIMEZONE"
 
 # Install Oracle Database prereq and openssl packages
 yum install -y oracle-database-server-12cR2-preinstall openssl
 
-echo 'INSTALLER: Oracle preinstall and openssl complete'
+echo 'INSTALLER: Oracle 预安装包和 openssl 已安装完成'
 
 # create directories
 mkdir -p $ORACLE_BASE
@@ -61,7 +65,7 @@ chown oracle:oinstall -R $ORACLE_BASE
 mkdir -p /u01/app
 ln -s $ORACLE_BASE /u01/app/oracle
 
-echo 'INSTALLER: Oracle directories created'
+echo 'INSTALLER: Oracle 目录已创建'
 
 # set environment variables
 echo "export ORACLE_BASE=$ORACLE_BASE" >> /home/oracle/.bashrc
@@ -69,7 +73,7 @@ echo "export ORACLE_HOME=$ORACLE_HOME" >> /home/oracle/.bashrc
 echo "export ORACLE_SID=$ORACLE_SID" >> /home/oracle/.bashrc
 echo "export PATH=\$PATH:\$ORACLE_HOME/bin" >> /home/oracle/.bashrc
 
-echo 'INSTALLER: Environment variables set'
+echo 'INSTALLER: 环境变量已设置'
 
 # Install Oracle
 
@@ -84,7 +88,7 @@ $ORACLE_HOME/root.sh
 rm -rf /tmp/database
 rm /tmp/db_install.rsp
 
-echo 'INSTALLER: Oracle software installed'
+echo 'INSTALLER: Oracle 软件已安装'
 
 # create sqlnet.ora, listener.ora and tnsnames.ora
 su -l oracle -c "mkdir -p $ORACLE_HOME/network/admin"
@@ -116,7 +120,7 @@ su -l oracle -c "echo '$ORACLE_PDB=
 # Start LISTENER
 su -l oracle -c "lsnrctl start"
 
-echo 'INSTALLER: Listener created'
+echo 'INSTALLER: 监听器已创建'
 
 # Create database
 
@@ -144,10 +148,10 @@ EOF"
 
 rm /tmp/dbca.rsp
 
-echo 'INSTALLER: Database created'
+echo 'INSTALLER: 数据库已创建'
 
 sed -i -e "\$s|${ORACLE_SID}:${ORACLE_HOME}:N|${ORACLE_SID}:${ORACLE_HOME}:Y|" /etc/oratab
-echo 'INSTALLER: Oratab configured'
+echo 'INSTALLER: Oratab 已配置'
 
 # configure systemd to start oracle instance on startup
 sudo cp /vagrant/scripts/oracle-rdbms.service /etc/systemd/system/
@@ -155,40 +159,41 @@ sudo sed -i -e "s|###ORACLE_HOME###|$ORACLE_HOME|g" /etc/systemd/system/oracle-r
 sudo systemctl daemon-reload
 sudo systemctl enable oracle-rdbms
 sudo systemctl start oracle-rdbms
-echo "INSTALLER: Created and enabled oracle-rdbms systemd's service"
+echo "INSTALLER: 已创建并启用 oracle-rdbms systemd 服务"
 
 sudo cp /vagrant/scripts/setPassword.sh /home/oracle/
 sudo chmod a+rx /home/oracle/setPassword.sh
 
-echo "INSTALLER: setPassword.sh file setup";
+echo "INSTALLER: setPassword.sh 文件已就绪";
 
+# 中文：标准安装结束后，再按顺序执行用户自定义脚本。
 # run user-defined post-setup scripts
-echo 'INSTALLER: Running user-defined post-setup scripts'
+echo 'INSTALLER: 正在运行用户自定义的安装后脚本'
 
 for f in /vagrant/userscripts/*
   do
     case "${f,,}" in
       *.sh)
-        echo "INSTALLER: Running $f"
+        echo "INSTALLER: 正在运行 $f"
         . "$f"
-        echo "INSTALLER: Done running $f"
+        echo "INSTALLER: 已完成 $f"
         ;;
       *.sql)
-        echo "INSTALLER: Running $f"
+        echo "INSTALLER: 正在运行 $f"
         su -l oracle -c "echo 'exit' | sqlplus -s / as sysdba @\"$f\""
-        echo "INSTALLER: Done running $f"
+        echo "INSTALLER: 已完成 $f"
         ;;
       /vagrant/userscripts/put_custom_scripts_here.txt)
         :
         ;;
       *)
-        echo "INSTALLER: Ignoring $f"
+        echo "INSTALLER: 已忽略 $f"
         ;;
     esac
   done
 
-echo 'INSTALLER: Done running user-defined post-setup scripts'
+echo 'INSTALLER: 已完成用户自定义的安装后脚本'
 
-echo "ORACLE PASSWORD FOR SYS, SYSTEM AND PDBADMIN: $ORACLE_PWD";
+echo "SYS、SYSTEM 和 PDBADMIN 的 ORACLE 密码：$ORACLE_PWD";
 
-echo "INSTALLER: Installation complete, database ready to use!";
+echo "INSTALLER: 安装完成，数据库已可用！";

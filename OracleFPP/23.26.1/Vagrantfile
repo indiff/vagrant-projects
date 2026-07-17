@@ -15,6 +15,9 @@
 #           RAC Pack, Cloud Innovation and Solution Engineering Team
 #------------------------------------------------------------------------------
 
+# 中文说明：
+# 用于校验实验室配置、定义虚拟机与共享磁盘，并把预配参数传给 setup.sh。
+
 require 'yaml'
 require 'ipaddr'
 
@@ -47,14 +50,14 @@ MIN_ASM_DISK_GB  = 10
 puts ''
 puts '--------------------------------------------------------'
 puts "  #{PROJECT_TITLE}"
-puts '  Vagrant project for VirtualBox or KVM/libvirt'
+puts '  适用于 VirtualBox 或 KVM/libvirt 的 Vagrant 项目'
 puts '  Copyright (c) 2020-2026 Oracle and/or its affiliates'
 puts '--------------------------------------------------------'
 puts ''
 
 # --------------------------- Helpers -----------------------------------------
 def fatal(msg)
-  $stderr.puts "ERROR: #{msg}"
+  $stderr.puts "错误：#{msg}"
   $stderr.flush
   exit 1
 end
@@ -64,7 +67,7 @@ def valid_ip?(str)
 end
 
 def require_ip!(label, value)
-  fatal "#{label} is not a valid IP address (got: '#{value}')" unless valid_ip?(value)
+  fatal "#{label} 不是有效的 IP 地址（实际值：'#{value}'）" unless valid_ip?(value)
 end
 
 def fetch_optional(hash, *path, default: nil)
@@ -91,18 +94,19 @@ def verify_checksum_entry(checksum_path, installer)
 end
 
 # --------------------------- Config load -------------------------------------
+# 中文：先校验配置文件与安装介质，再继续定义节点与磁盘布局。
 config_path = File.expand_path('config/vagrant.yml', __dir__)
-fatal "config file not found: #{config_path}" unless File.exist?(config_path)
+fatal "未找到配置文件：#{config_path}" unless File.exist?(config_path)
 
 begin
   params = YAML.load_file(config_path)
 rescue => e
-  fatal "failed to parse #{config_path}: #{e.message}"
+  fatal "解析 #{config_path} 失败：#{e.message}"
 end
 
-fatal "config file #{config_path} is empty or not a mapping" unless params.is_a?(Hash)
+fatal "配置文件 #{config_path} 为空或不是映射类型" unless params.is_a?(Hash)
 %w[host1 host2 shared env].each do |section|
-  fatal "missing required section '#{section}' in #{config_path}" unless params[section].is_a?(Hash)
+  fatal "#{config_path} 中缺少必需部分 '#{section}'" unless params[section].is_a?(Hash)
 end
 
 # --------------------------- Extract config ----------------------------------
@@ -154,40 +158,40 @@ var_vm2_private_ip  = params['host2']['private_ip']
 
 # --------------------------- Validation --------------------------------------
 unless %w[libvirt virtualbox].include?(var_provider_name.to_s)
-  fatal "'env.provider' must be 'libvirt' or 'virtualbox' (got: '#{var_provider_name}')"
+  fatal "'env.provider' 必须为 'libvirt' 或 'virtualbox'（实际值：'#{var_provider_name}'）"
 end
 
 unless var_prefix_name.is_a?(String) && var_prefix_name.match?(/\A[0-9a-zA-Z-]{1,14}\z/)
-  fatal "'shared.prefix_name' must be 1-14 chars of [0-9a-zA-Z-] (got: '#{var_prefix_name}')"
+  fatal "'shared.prefix_name' 必须为 1-14 个 [0-9a-zA-Z-] 字符（实际值：'#{var_prefix_name}'）"
 end
 
 unless %w[true false].include?(var_vm2_deploy)
-  fatal "'host2.deploy' must be 'true' or 'false' (got: '#{var_vm2_deploy_raw}')"
+  fatal "'host2.deploy' 必须为 'true' 或 'false'（实际值：'#{var_vm2_deploy_raw}'）"
 end
 
 unless %w[ASMLIB ASMFD NONE].include?(var_asm_lib_type)
-  fatal "'shared.asm_lib_type' must be ASMLIB, ASMFD or NONE (got: '#{var_asm_lib_type}')"
+  fatal "'shared.asm_lib_type' 必须为 ASMLIB、ASMFD 或 NONE（实际值：'#{var_asm_lib_type}'）"
 end
 
 unless %w[hostonly public].include?(var_network)
-  fatal "'shared.network' must be 'public' or 'hostonly' (got: '#{var_network}')"
+  fatal "'shared.network' 必须为 'public' 或 'hostonly'（实际值：'#{var_network}'）"
 end
 
 if var_network == 'public'
-  fatal "'shared.bridge_nic' must be set when shared.network is 'public'"    if var_provider_name == 'libvirt' && var_bridge_nic.empty?
-  fatal "'shared.gateway' must be set when shared.network is 'public'"       if var_gateway.empty?
-  fatal "'shared.netmask' must be set when shared.network is 'public'"       if var_netmask.empty?
-  fatal "'shared.dns_public_ip' must be set when shared.network is 'public'" if var_dns_public_ip.empty?
+  fatal "当 shared.network 为 'public' 时，必须设置 'shared.bridge_nic'"    if var_provider_name == 'libvirt' && var_bridge_nic.empty?
+  fatal "当 shared.network 为 'public' 时，必须设置 'shared.gateway'"       if var_gateway.empty?
+  fatal "当 shared.network 为 'public' 时，必须设置 'shared.netmask'"       if var_netmask.empty?
+  fatal "当 shared.network 为 'public' 时，必须设置 'shared.dns_public_ip'" if var_dns_public_ip.empty?
   require_ip!('shared.netmask',       var_netmask)
   require_ip!('shared.gateway',       var_gateway)
   require_ip!('shared.dns_public_ip', var_dns_public_ip)
 end
 
-fatal "'host1.mem_size' must be >= #{MIN_VM1_MEM_MB} MB (got: #{var_vm1_mem_size})" if var_vm1_mem_size < MIN_VM1_MEM_MB
-fatal "'host1.cpus' must be >= 1 (got: #{var_vm1_cpus})"                            if var_vm1_cpus    < 1
+fatal "'host1.mem_size' 必须 >= #{MIN_VM1_MEM_MB} MB（实际值：#{var_vm1_mem_size}）" if var_vm1_mem_size < MIN_VM1_MEM_MB
+fatal "'host1.cpus' 必须 >= 1（实际值：#{var_vm1_cpus}）"                            if var_vm1_cpus    < 1
 
-fatal "'shared.asm_disk_num' must be >= #{MIN_ASM_DISK_NUM} (got: #{var_asm_disk_num})"      if var_asm_disk_num  < MIN_ASM_DISK_NUM
-fatal "'shared.asm_disk_size' must be >= #{MIN_ASM_DISK_GB} GB (got: #{var_asm_disk_size})"  if var_asm_disk_size < MIN_ASM_DISK_GB
+fatal "'shared.asm_disk_num' 必须 >= #{MIN_ASM_DISK_NUM}（实际值：#{var_asm_disk_num}）"      if var_asm_disk_num  < MIN_ASM_DISK_NUM
+fatal "'shared.asm_disk_size' 必须 >= #{MIN_ASM_DISK_GB} GB（实际值：#{var_asm_disk_size}）"  if var_asm_disk_size < MIN_ASM_DISK_GB
 
 # host1 IPs — always validated.
 {
@@ -203,8 +207,8 @@ fatal "'shared.asm_disk_size' must be >= #{MIN_ASM_DISK_GB} GB (got: #{var_asm_d
 
 # host2 — only required if actually deploying it.
 if var_deploy_host2
-  fatal "'host2.mem_size' must be >= #{MIN_VM2_MEM_MB} MB (got: #{var_vm2_mem_size})" if var_vm2_mem_size < MIN_VM2_MEM_MB
-  fatal "'host2.cpus' must be >= 1 (got: #{var_vm2_cpus})"                            if var_vm2_cpus    < 1
+  fatal "'host2.mem_size' 必须 >= #{MIN_VM2_MEM_MB} MB（实际值：#{var_vm2_mem_size}）" if var_vm2_mem_size < MIN_VM2_MEM_MB
+  fatal "'host2.cpus' 必须 >= 1（实际值：#{var_vm2_cpus}）"                            if var_vm2_cpus    < 1
   require_ip!('host2.public_ip',  var_vm2_public_ip)
   require_ip!('host2.private_ip', var_vm2_private_ip)
 end
@@ -216,31 +220,32 @@ end
   'env.oracle_password' => var_oracle_password,
   'env.sys_password'    => var_sys_password,
 }.each do |label, val|
-  fatal "'#{label}' must be set" if val.to_s.empty?
+  fatal "'#{label}' 必须已设置" if val.to_s.empty?
 end
 
 # Installer presence + filename prefix + checksum manifest entry.
 gi_zip_path = File.expand_path("./ORCL_software/#{var_gi_software}", __dir__)
 db_zip_path = File.expand_path("./ORCL_software/#{var_db_software}", __dir__)
-fatal "GI installer zip not found: #{gi_zip_path}\n  Place the Oracle 19c Grid Infrastructure zip into ORCL_software/." unless File.exist?(gi_zip_path)
-fatal "DB installer zip not found: #{db_zip_path}\n  Place the Oracle 19c Database zip into ORCL_software/."            unless File.exist?(db_zip_path)
+fatal "未找到 GI 安装 zip：#{gi_zip_path}\n  请将 Oracle 19c Grid Infrastructure zip 放入 ORCL_software/。" unless File.exist?(gi_zip_path)
+fatal "未找到 DB 安装 zip：#{db_zip_path}\n  请将 Oracle 19c Database zip 放入 ORCL_software/。"            unless File.exist?(db_zip_path)
 
 unless var_gi_software.to_s.start_with?(EXPECTED_GI_SOFTWARE_PREFIX)
-  fatal "'env.gi_software' (#{var_gi_software}) does not match this project (expected prefix: #{EXPECTED_GI_SOFTWARE_PREFIX})"
+  fatal "'env.gi_software'（#{var_gi_software}）与当前项目不匹配（期望前缀：#{EXPECTED_GI_SOFTWARE_PREFIX}）"
 end
 unless var_db_software.to_s.start_with?(EXPECTED_DB_SOFTWARE_PREFIX)
-  fatal "'env.db_software' (#{var_db_software}) does not match this project (expected prefix: #{EXPECTED_DB_SOFTWARE_PREFIX})"
+  fatal "'env.db_software'（#{var_db_software}）与当前项目不匹配（期望前缀：#{EXPECTED_DB_SOFTWARE_PREFIX}）"
 end
 
 checksum_path = File.expand_path('./db_installer.cksum', __dir__)
-fatal "installer checksum file not found: #{checksum_path}" unless File.exist?(checksum_path)
-fatal "no checksum entry for '#{var_gi_software}' found in #{checksum_path}\n  Run:  cksum ORCL_software/#{var_gi_software}  and paste the result." unless verify_checksum_entry(checksum_path, var_gi_software)
-fatal "no checksum entry for '#{var_db_software}' found in #{checksum_path}\n  Run:  cksum ORCL_software/#{var_db_software}  and paste the result." unless verify_checksum_entry(checksum_path, var_db_software)
+fatal "未找到安装文件校验清单：#{checksum_path}" unless File.exist?(checksum_path)
+fatal "在 #{checksum_path} 中未找到 '#{var_gi_software}' 的校验记录\n  请运行：cksum ORCL_software/#{var_gi_software}，并粘贴结果。" unless verify_checksum_entry(checksum_path, var_gi_software)
+fatal "在 #{checksum_path} 中未找到 '#{var_db_software}' 的校验记录\n  请运行：cksum ORCL_software/#{var_db_software}，并粘贴结果。" unless verify_checksum_entry(checksum_path, var_db_software)
 
 # --------------------------- Provider setup ----------------------------------
+# 中文：根据 provider 决定磁盘、网络与插件的装配方式。
 provider = var_provider_name.to_sym
-puts "Provider: #{provider}"
-puts "Mode:     #{var_deploy_host2 ? 'single-node FPP Server cluster + FPP Client' : 'single-node FPP Server cluster (host2 skipped)'}"
+puts "提供程序：#{provider}"
+puts "模式：     #{var_deploy_host2 ? '单节点 FPP Server 集群 + FPP Client' : '单节点 FPP Server 集群（已跳过 host2）'}"
 puts ''
 
 box_disks_num = 1
@@ -249,9 +254,9 @@ begin
   boxes_out = `vagrant box list 2>/dev/null`
   have_box  = boxes_out.lines.any? { |l| l.include?("#{BOX_NAME} (#{var_provider_name},") }
   unless have_box
-    puts "NOTE: '#{BOX_NAME}' is not cached for provider '#{var_provider_name}'."
-    puts "      Vagrant will download it now; expect a multi-GB transfer from yum.oracle.com."
-    puts '      To pre-download (interactive progress), run in another shell:'
+    puts "注意：提供程序 '#{var_provider_name}' 尚未缓存 '#{BOX_NAME}'。"
+    puts "      Vagrant 现在将下载它；预计会从 yum.oracle.com 传输数 GB 数据。"
+    puts '      如需预先下载（显示交互式进度），请在另一个 shell 中运行：'
     puts "        vagrant box add #{BOX_NAME} #{BOX_URL} --provider=#{var_provider_name}"
     puts ''
   end
@@ -276,7 +281,7 @@ if var_provider_name == 'virtualbox'
   var_non_rotational = fetch_optional(params, 'env',   'non_rotational',   default: 'on').to_s
   var_asm_disk_path  = fetch_optional(params, 'env',   'asm_disk_path',    default: '').to_s
 
-  fatal "'env.non_rotational' must be 'on' or 'off' (got: '#{var_non_rotational}')" unless %w[on off].include?(var_non_rotational)
+  fatal "'env.non_rotational' 必须为 'on' 或 'off'（实际值：'#{var_non_rotational}'）" unless %w[on off].include?(var_non_rotational)
 
   if var_group == false || var_group.to_s.strip.empty?
     # Keep VirtualBox groups opt-in. Setting a group moves the VM directory on
@@ -298,15 +303,15 @@ if var_provider_name == 'virtualbox'
     asm_disk = "#{var_asm_disk_path}asm_disk#{i}.vdi"
     next if File.exist?(asm_disk)
 
-    puts "Creating shared ASM VDI: #{asm_disk} (#{var_asm_disk_size}G, fixed)"
-    fatal "VBoxManage createhd failed for #{asm_disk}" unless system(
+    puts "正在创建共享 ASM VDI：#{asm_disk}（#{var_asm_disk_size}G，固定大小）"
+    fatal "VBoxManage createhd 执行失败：#{asm_disk}" unless system(
       'VBoxManage', 'createhd',
       '--filename', asm_disk,
       '--size',     (var_asm_disk_size * 1024).to_s,
       '--format',   'VDI',
       '--variant',  'Fixed'
     )
-    fatal "VBoxManage modifymedium --type shareable failed for #{asm_disk}" unless system(
+    fatal "VBoxManage modifymedium --type shareable 执行失败：#{asm_disk}" unless system(
       'VBoxManage', 'modifymedium', 'disk', asm_disk, '--type', 'shareable'
     )
   end
@@ -319,8 +324,8 @@ required_plugins << 'vagrant-libvirt' if var_provider_name == 'libvirt'
 required_plugins.each do |plugin|
   next if Vagrant.has_plugin?(plugin)
 
-  puts "Installing missing Vagrant plugin: #{plugin}"
-  fatal "failed to install Vagrant plugin '#{plugin}'" unless system("vagrant plugin install #{plugin}")
+  puts "正在安装缺失的 Vagrant 插件：#{plugin}"
+  fatal "安装 Vagrant 插件 '#{plugin}' 失败" unless system("vagrant plugin install #{plugin}")
 end
 
 # --------------------------- Time zone ---------------------------------------
@@ -471,10 +476,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     shell.privileged = true
     shell.inline     = <<~SHELL
       set -euo pipefail
-      echo "Installing UEK8 kernel (via yum)"
+      echo "正在安装 UEK8 内核（通过 yum）"
       sed -i '/enabled=0/c\\enabled=1' /etc/yum.repos.d/uek-ol9.repo
       yum install -y kernel-uek-6.12.0-104.43* kernel-uek-devel-6.12.0-104.43*
-      echo "Rebooting to make UEK8 the running kernel, a prerequisite for ACFS"
+      echo "正在重启以让 UEK8 成为当前运行内核，这是 ACFS 的前置条件"
     SHELL
     shell.reboot = true
   end
@@ -491,6 +496,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   SHELL
 
   # Main orchestrator.
+  # 中文：统一把参数传给来宾机内的 setup.sh，串联后续预配步骤。
   config.vm.provision 'shell', name: 'setup-orchestrator', path: 'scripts/setup.sh', env: {
     'PROVIDER'        => var_provider_name,
     'BOX_DISK_NUM'    => box_disks_num.to_s,

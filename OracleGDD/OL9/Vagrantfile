@@ -47,6 +47,10 @@
 
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
+# 中文说明：
+# - 此 Vagrantfile 用于定义 Oracle Globally Distributed Database 实验环境的主机、网络、磁盘和容器镜像参数。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 require 'yaml'
 require 'ipaddr'
 
@@ -55,7 +59,7 @@ VAGRANTFILE_API_VERSION = "2"
 
 puts ""
 puts "│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│"
-puts " Oracle Globally Distributed DB Vagrant box for KVM/libVirt or VirtualBox "
+puts " 适用于 KVM/libVirt 或 VirtualBox 的 Oracle Globally Distributed DB Vagrant 环境 "
 puts " Copyright (c) 2024 Oracle and/or its affiliates                          "
 puts "--------------------------------------------------------------------------"
 puts " Author: Ruggero Citton <ruggero.citton@oracle.com>                       "
@@ -74,6 +78,7 @@ ui = Vagrant::UI::Prefixed.new(Vagrant::UI::Colored.new, "vagrant")
 # -----------------------------------------------------------------
 # Variables
 # -----------------------------------------------------------------
+# 按配置文件集中读取实验参数，后续统一下发给虚拟机和脚本。
 params = YAML.load_file 'config/vagrant.yml'
 #
 var_provider_name   = params['env']['provider']
@@ -109,12 +114,12 @@ var_gsm_image  = params['env']['gsm_image']
 # Provider Specific checks
 # -----------------------------------------------------------------
 if ( (var_provider_name != 'libvirt') and (var_provider_name != 'virtualbox') )
-  puts "ERROR: 'provider' option can be 'libvirt' or 'virtualbox'" 
+  puts "错误：'provider' 选项只能是 'libvirt' 或 'virtualbox'" 
   exit
 else
   provider = (var_provider_name).to_sym
   puts "--------------------"
-  puts "Detected #{provider}"
+  puts "已检测到 #{provider}"
   puts "--------------------"
 end
 
@@ -128,7 +133,7 @@ elsif var_provider_name == 'libvirt'
   ENV['VAGRANT_DEFAULT_PROVIDER'] || 'libvirt'
   ENV['VAGRANT_NO_PARALLEL'] = 'yes'
 else 
-  puts "Not supported #{provider}, exiting..."
+  puts "不支持 #{provider}，正在退出..."
   exit
 end
 
@@ -170,97 +175,97 @@ class String
 end
 
 if !var_prefix_name.match? /\A[0-9a-zA-Z-]{1,14}\z/
-  puts 'ERROR: prefix_name \'' + var_prefix_name + '\' option can be any combination'
-  puts '  {1..13 chars} of lower and uppercase alphanumeric characters (a - z, A - Z, 0 - 9), and hyphen(-)'
+  puts '错误：prefix_name \'' + var_prefix_name + '\' option can be any combination'
+  puts '  {1..13 个字符}，可使用大小写字母数字（a - z、A - Z、0 - 9）和连字符(-)'
   exit
 end
 
 if var_vm1_mem_size.to_i < 32768
-  puts 'ERROR: vm1_mem_size option can not be less then 32 Gb'
+  puts '错误：vm1_mem_size option can not be less then 32 Gb'
   exit
 end
 
 if var_oradata_disk_size.to_i < 10
-  puts 'ERROR: asm_disk_size option can not be less then 10 Gb'
+  puts '错误：asm_disk_size option can not be less then 10 Gb'
   exit
 end
 
 if ( (var_network != 'hostonly') and (var_network != 'public') )
-  puts "ERROR: network option can be 'public' or 'hostonly'"
+  puts "错误：network 选项只能是 'public' 或 'hostonly'"
   exit
 end
 if (var_provider_name == 'libvirt')
   if ( (var_network == 'public') and (var_bridge_nic.to_s.empty?))
-    puts "ERROR: bridge_nic is empty"
+    puts "错误：bridge_nic 为空"
     exit
   end
 end
 
 if var_network == 'public'
   if var_gateway.to_s.empty?
-   puts "ERROR: Using public network gateway must be defined"
+   puts "错误：使用 public 网络时必须定义 gateway"
    exit
   end
   if var_netmask.to_s.empty?
-    puts "ERROR: Using public network netmask must be defined"
+    puts "错误：使用 public 网络时必须定义 netmask"
     exit
   end
   if var_dns_public_ip.to_s.empty?
-    puts "ERROR: Using public network var_dns_public_ip must be defined"
+    puts "错误：使用 public 网络时必须定义 var_dns_public_ip"
     exit
   end
 
   if ! var_netmask.is_ip?
-    puts "ERROR: netmask is not a valid IP address"
+    puts "错误：netmask 不是有效的 IP 地址"
     exit
   end
   if ! var_gateway.is_ip?
-    puts "ERROR: gateway is not a valid IP address"
+    puts "错误：gateway 不是有效的 IP 地址"
     exit
   end
   if ! var_dns_public_ip.is_ip?
-    puts "ERROR: var_dns_public_ip is not a valid IP address"
+    puts "错误：var_dns_public_ip 不是有效的 IP 地址"
     exit
   end
 end
 
 if ! var_vm1_public_ip.is_ip?
-  puts 'ERROR: public_ip for host1 is not a valid IP address'
+  puts '错误：host1 的 public_ip 不是有效的 IP 地址'
   exit
 end
 
 if var_root_password.to_s.empty?
- puts "ERROR: root_password is not defined"
+ puts "错误：未定义 root_password"
  exit
 end
 if var_sharding_secret.to_s.empty?
- puts "ERROR: sharding_secret is not defined"
+ puts "错误：未定义 sharding_secret"
  exit 
 end
 
 if var_oradata_disk_num.to_i < 2
-  puts 'ERROR: oradata_disk_num option can not be less then 2'
+  puts '错误：oradata_disk_num option can not be less then 2'
   exit
 end
 #------------------------------------------------------------------
 
 # Install required Vagrant plugin
 unless Vagrant.has_plugin?("vagrant-reload")
-  puts 'Installing vagrant-reload Plugin...'
+  puts '正在安装 vagrant-reload 插件...'
   system('vagrant plugin install vagrant-reload')
 end
 unless Vagrant.has_plugin?("vagrant-proxyconf")
-  puts 'Installing vagrant-proxyconf Plugin...'
+  puts '正在安装 vagrant-proxyconf 插件...'
   system('vagrant plugin install vagrant-proxyconf')
 end
 
 if var_provider_name == 'libvirt'
   unless Vagrant.has_plugin?("vagrant-libvirt")
-    puts 'Installing vagrant-libvirt Plugin...'
+    puts '正在安装 vagrant-libvirt 插件...'
     system('vagrant plugin install vagrant-libvirt')
   end
   unless Vagrant.has_plugin?("vagrant-kvm")
-    puts 'Installing vagrant-kvm Plugin...'
+    puts '正在安装 vagrant-kvm 插件...'
     system('vagrant plugin install vagrant-kvm')
   end
 end
@@ -281,16 +286,16 @@ end
 if (Dir.glob("#{File.dirname(__FILE__)}/.vagrant/machines/#{var_vm1_name}/#{provider}/*").empty? or ARGV[1] == 'provision') and ARGV[0] != "destroy" and ARGV[0] != "ssh"
   unless var_podman_registry_uri.to_s.empty?
     if var_podman_registry_user.to_s.empty?
-      puts "Please insert your username for '" + var_podman_registry_uri.to_s + "' \n"
-      print "Username: "
+      puts "请输入 '#{var_podman_registry_uri}' 的用户名\n"
+      print "用户名："
       var_podman_registry_user = STDIN.gets.chomp
     end
   end
 
   unless var_podman_registry_user.to_s.empty?
     if var_podman_registry_password.to_s.empty?
-      puts "\nPlease insert '" + var_podman_registry_user.to_s + "' password for '" + var_podman_registry_uri.to_s + "' \n"
-      print "Password: "
+      puts "\n请输入 '#{var_podman_registry_uri}' 中用户 '#{var_podman_registry_user}' 的密码\n"
+      print "密码："
       var_podman_registry_password = STDIN.noecho(&:gets).chomp
     end
   end
@@ -299,14 +304,14 @@ if (Dir.glob("#{File.dirname(__FILE__)}/.vagrant/machines/#{var_vm1_name}/#{prov
 
   unless var_podman_registry_uri.to_s.empty?
     if var_podman_registry_user.to_s.empty?
-     puts "ERROR: Username must be defined"
+     puts "错误：必须定义用户名"
      exit
     end
   end
 
   unless var_podman_registry_user.to_s.empty?
     if var_podman_registry_password.to_s.empty?
-     puts "ERROR: Password must be defined"
+     puts "错误：必须定义密码"
      exit
     end
   end
@@ -314,6 +319,7 @@ end
 
 
 # VMs definition
+# 根据 provider 和网络配置动态生成虚拟机定义。
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = var_box
   config.vm.box_url = var_url
@@ -329,11 +335,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # add proxy configuration from host env - optional
   if Vagrant.has_plugin?("vagrant-proxyconf")
-    ui.info "Getting Proxy Configuration from Host..."
+    ui.info "正在从宿主机获取代理配置..."
     has_proxy = false
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTP proxy: " + proxy
+        ui.info "HTTP 代理：" + proxy
         config.proxy.http = proxy
         has_proxy = true
         break
@@ -342,7 +348,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTPS proxy: " + proxy
+        ui.info "HTTPS 代理：" + proxy
         config.proxy.https = proxy
         has_proxy = true
         break
@@ -355,7 +361,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ["no_proxy", "NO_PROXY"].each do |proxy_var|
         if ENV[proxy_var]
           no_proxy = ENV[proxy_var]
-          ui.info "No proxy: " + no_proxy
+          ui.info "不使用代理：" + no_proxy
           no_proxy += ","
           break
         end
@@ -365,7 +371,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   else
     ["http_proxy", "HTTP_PROXY", "https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if ENV[proxy_var]
-        ui.warn 'To enable proxies in your VM, install the vagrant-proxyconf plugin'
+        ui.warn '如需在虚拟机中启用代理，请安装 vagrant-proxyconf 插件'
         break
       end
     end
@@ -496,4 +502,3 @@ end
 #----------------------------------------------------------
 # EndOfFile
 #----------------------------------------------------------
-

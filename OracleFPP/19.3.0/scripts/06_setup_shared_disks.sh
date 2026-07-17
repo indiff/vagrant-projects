@@ -12,6 +12,9 @@
 #     $1 = index of the first shared disk (0-based among the VM's disks)
 #     $2 = provider name ('libvirt' or 'virtualbox')
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于初始化共享 ASM 磁盘，并生成稳定的 udev 设备名。
+
 . /vagrant/scripts/_common.sh
 require_root
 for v in ASM_DISK_NUM NODE1_HOSTNAME NODE2_HOSTNAME; do
@@ -19,7 +22,7 @@ for v in ASM_DISK_NUM NODE1_HOSTNAME NODE2_HOSTNAME; do
 done
 
 if [[ $# -lt 2 ]]; then
-  log_error "usage: $0 <first-shared-disk-index> <provider>"
+  log_error "用法：$0 <first-shared-disk-index> <provider>"
   exit 1
 fi
 
@@ -36,11 +39,11 @@ clear_block_device_metadata() {
   local bytes seek_mib wipe_bytes
 
   if [[ ! -b "${dev}" ]]; then
-    log_error "expected block device ${dev} is missing"
+    log_error "期望的块设备 ${dev} 缺失"
     return 1
   fi
 
-  log_info "clearing stale partition / ASM metadata on ${dev}"
+  log_info "正在清理 ${dev} 上遗留的分区 / ASM 元数据"
   wipefs -a -f "${dev}" >/dev/null 2>&1 || true
 
   dd if=/dev/zero of="${dev}" bs=1M count="${wipe_mib}" conv=fsync >/dev/null 2>&1
@@ -61,6 +64,7 @@ clear_block_device_metadata() {
 partition_here="true"
 
 # --- Enumerate the shared disks (exactly ASM_DISK_NUM of them) --------------
+# 中文：先计算共享盘设备名，再统一完成分区与 udev 规则生成。
 letters=()
 for ((i = 0; i < ASM_DISK_NUM; i++)); do
   pos=$((first_idx + i))
@@ -71,11 +75,11 @@ if [[ "${partition_here}" == "true" ]]; then
   for L in "${letters[@]}"; do
     dev="/dev/${dev_prefix}${L}"
     if [[ ! -b "${dev}" ]]; then
-      log_error "expected shared block device ${dev} is missing"
+      log_error "期望的共享块设备 ${dev} 缺失"
       exit 1
     fi
     clear_block_device_metadata "${dev}"
-    log_info "partitioning ${dev} (P1 = 100%)"
+    log_info "正在为 ${dev} 分区（P1 = 100%）"
     parted -s "${dev}" -- \
       mklabel gpt \
       mkpart primary 4096s 100%
@@ -84,7 +88,7 @@ if [[ "${partition_here}" == "true" ]]; then
 fi
 
 # --- udev rules (run on every node) -----------------------------------------
-log_section "Installing udev rules for shared disks"
+log_section "正在为共享磁盘安装 udev 规则"
 udev_file='/etc/udev/rules.d/70-oracle-asm.rules'
 : > "${udev_file}"
 
@@ -104,7 +108,7 @@ for L in "${letters[@]}"; do
   else
     serial="$(udevadm info --query=all --name="${dev}" | awk -F= '/^E: ID_SERIAL=/{print $2; exit}')"
     if [[ -z "${serial}" ]]; then
-      log_error "could not determine ID_SERIAL for ${dev}"
+      log_error "无法确定 ${dev} 的 ID_SERIAL"
       exit 1
     fi
     {
@@ -118,7 +122,7 @@ chmod 0644 "${udev_file}"
 udevadm control --reload-rules
 udevadm trigger --subsystem-match=block
 
-log_section "Running partprobe + fixing ownership"
+log_section "正在运行 partprobe 并修正设备归属"
 i=1
 for L in "${letters[@]}"; do
   dev="/dev/${dev_prefix}${L}"

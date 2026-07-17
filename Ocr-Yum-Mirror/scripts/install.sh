@@ -11,14 +11,18 @@
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
 
-echo 'INSTALLER: Started up'
+# 中文说明：
+# - 执行基础系统更新、磁盘初始化和 Web 服务准备。
+# - 为后续 Yum 与 OCR 镜像同步提供存储、仓库和网络访问能力。
+
+echo 'INSTALLER：开始执行'
 
 # get up to date
 sudo dnf upgrade -y
 
-echo 'INSTALLER: System updated'
+echo 'INSTALLER：系统已更新'
 
-echo 'INSTALLER: allow ssh access by password'
+echo 'INSTALLER：启用 SSH 密码访问'
 sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
 sudo systemctl reload sshd.service
 
@@ -28,20 +32,22 @@ LANG=en_US.utf-8
 LC_ALL=en_US.utf-8
 EOF
 
-echo 'INSTALLER: Locale set'
+echo 'INSTALLER：Locale 已设置'
 
-echo 'INSTALLER: Creating persistent virtual-disk /dev/sdb1'
+echo 'INSTALLER：正在创建持久虚拟磁盘 /dev/sdb1'
 # persistent disk
+# 中文：将第二块磁盘持久挂载到 /var/yum，用于保存镜像数据。
 printf "o\nn\np\n1\n\n\nw\n" |sudo fdisk /dev/sdb
 sudo mkfs.xfs /dev/sdb1
 sudo mkdir -p /var/yum
 sudo mount /dev/sdb1 /var/yum
 sudo chown vagrant: /var/yum
 
-echo 'INSTALLER: Add entry for the 2nd virtual-disk into /etc/fstab'
+echo 'INSTALLER：正在将第二块虚拟磁盘写入 /etc/fstab'
 cat /etc/mtab |grep sdb1 |sudo tee -a /etc/fstab
 
-echo 'INSTALLER: Installing prerequisite packages'
+# 中文：安装 Web 服务和 OCNE 仓库，为镜像同步做准备。
+echo 'INSTALLER：正在安装前置软件包'
 sudo dnf install -y httpd
 sudo dnf install -y oracle-olcne-release-el8
 sudo dnf config-manager --enable ol8_olcne16 ol8_addons ol8_baseos_latest ol8_appstream ol8_UEKR7

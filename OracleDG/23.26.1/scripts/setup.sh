@@ -8,6 +8,11 @@
 #   Invoked by Vagrantfile on both primary and standby hosts.
 #------------------------------------------------------------------------------
 
+# 中文说明：
+# - 该脚本是两节点 Oracle Data Guard 环境的总控入口。
+# - 它会先生成共享环境文件，再按顺序完成系统、软件、数据库和收尾配置。
+
+
 set -o errexit
 set -o errtrace
 set -o nounset
@@ -27,7 +32,7 @@ for v in PROVIDER BOX_DISK_NUM VM1_NAME VM2_NAME SYSTEM_TIMEZONE \
          NODE1_PUBLIC_IP NODE2_PUBLIC_IP NODE1_PRIV_IP NODE2_PRIV_IP \
          ROOT_PASSWORD ORACLE_PASSWORD SYS_PASSWORD; do
   if [[ -z "${!v:-}" ]]; then
-    echo "ERROR: required environment variable '${v}' is missing" >&2
+    echo "错误：缺少必需的环境变量 '${v}'" >&2
     exit 1
   fi
 done
@@ -43,6 +48,7 @@ write_env_export() {
 }
 
 # Build the runtime setup.env file that is sourced by the other scripts.
+# 中文：把敏感变量写入来宾机本地文件，供 root 和 oracle 脚本共享。
 # Keep it on the guest filesystem rather than /vagrant so provider-specific
 # synced-folder permissions do not block scripts that run as the oracle user.
 install -d -m 0700 "${SETUP_ENV_DIR}"
@@ -103,86 +109,88 @@ chmod 0600 "${SETUP_ENV_FILE}"
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/_common.sh"
 
-log_section "Fixing locale warnings"
+log_section "修复 locale 警告"
 for line in 'LANG=en_US.utf-8' 'LC_ALL=en_US.utf-8'; do
   grep -qxF "${line}" /etc/environment || echo "${line}" >> /etc/environment
 done
 
-log_section "Setting system time zone to ${SYSTEM_TIMEZONE}"
+log_section "将系统时区设置为 ${SYSTEM_TIMEZONE}"
 timedatectl set-timezone "${SYSTEM_TIMEZONE}"
 
-log_section "Installing OS packages"
+log_section "安装操作系统软件包"
 bash "${SCRIPT_DIR}/01_install_os_packages.sh"
 
-log_section "Setting up /u01 disk"
+log_section "配置 /u01 磁盘"
 bash "${SCRIPT_DIR}/02_setup_u01.sh" "${BOX_DISK_NUM}" "${PROVIDER}"
 
-log_section "Setting up oradata disks (/u02)"
+log_section "配置 oradata 磁盘（/u02）"
 ORADATA_DISK_OFFSET=$((BOX_DISK_NUM + 1))
 bash "${SCRIPT_DIR}/03_setup_oradata_disks.sh" "${ORADATA_DISK_OFFSET}" "${PROVIDER}"
 
-log_section "Setting up /etc/hosts and /etc/resolv.conf"
+log_section "配置 /etc/hosts 和 /etc/resolv.conf"
 bash "${SCRIPT_DIR}/04_setup_hosts.sh"
 
-log_section "Setting up OS users and groups"
+log_section "配置操作系统用户和用户组"
 bash "${SCRIPT_DIR}/05_setup_users.sh"
 
-log_section "Granting oracle access to runtime provisioning env"
+log_section "授予 oracle 访问运行时预配环境文件的权限"
 chgrp oinstall "${SETUP_ENV_DIR}" "${SETUP_ENV_FILE}"
 chmod 0750 "${SETUP_ENV_DIR}"
 chmod 0640 "${SETUP_ENV_FILE}"
 
-log_section "Setting root and oracle account passwords"
+log_section "设置 root 和 oracle 账户密码"
 # chpasswd reads from stdin — does not expose passwords via `ps`.
 printf 'root:%s\n'   "${ROOT_PASSWORD}"   | chpasswd
 printf 'oracle:%s\n' "${ORACLE_PASSWORD}" | chpasswd
 
-log_section "Installing Oracle RDBMS software"
+log_section "安装 Oracle RDBMS 软件"
 su - oracle -c "bash ${SCRIPT_DIR}/06_do_RDBMS_software_installation.sh"
 bash "${ORA_INVENTORY}/orainstRoot.sh"
 bash "${DB_HOME}/root.sh"
 
-log_section "Configuring Oracle Net (listener, tnsnames)"
+log_section "配置 Oracle Net（listener、tnsnames）"
 su - oracle -c "bash ${SCRIPT_DIR}/07_setup_OracleNet.sh"
 
+# 中文：根据当前主机名决定执行主库还是备库数据库配置。
 current_host="$(hostname -s)"
 if [[ "${current_host}" == "${NODE1_HOSTNAME}" ]]; then
-  log_section "Configuring primary database"
+  log_section "配置主库数据库"
   su - oracle -c "bash ${SCRIPT_DIR}/primary_DB_setup.sh"
 elif [[ "${current_host}" == "${NODE2_HOSTNAME}" ]]; then
-  log_section "Configuring standby database"
+  log_section "配置备库数据库"
   su - oracle -c "bash ${SCRIPT_DIR}/standby_DB_setup.sh"
 else
-  log_error "hostname '${current_host}' matches neither primary (${NODE1_HOSTNAME}) nor standby (${NODE2_HOSTNAME})"
+  log_error "主机名 '${current_host}' 既不匹配主库（${NODE1_HOSTNAME}）也不匹配备库（${NODE2_HOSTNAME}）"
   exit 1
 fi
 
-log_section "Configuring database autostart"
+log_section "配置数据库自动启动"
 bash "${SCRIPT_DIR}/08_setup_autostart.sh"
 
 # Run user-defined post-setup scripts
-log_section "Running user-defined post-setup scripts (userscripts/)"
+# 中文：最后执行用户自定义脚本，方便在主流程后追加业务初始化。
+log_section "运行用户自定义后置脚本（userscripts/）"
 shopt -s nullglob
 for f in /vagrant/userscripts/*; do
   case "${f,,}" in
     *.sh)
-      log_info "running ${f}"
+      log_info "正在执行 ${f}"
       # shellcheck disable=SC1090
       . "${f}"
-      log_info "done ${f}"
+      log_info "已完成 ${f}"
       ;;
     *.sql)
-      log_info "running ${f} as SYS"
+      log_info "正在以 SYS 身份执行 ${f}"
       su -l oracle -c "echo exit | sqlplus -s / as sysdba @\"${f}\""
-      log_info "done ${f}"
+      log_info "已完成 ${f}"
       ;;
     /vagrant/userscripts/put_custom_scripts_here.txt)
       : # skip placeholder
       ;;
     *)
-      log_info "ignoring ${f}"
+      log_info "忽略 ${f}"
       ;;
   esac
 done
 
-log_success "Provisioning complete"
+log_success "预配完成"

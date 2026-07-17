@@ -11,11 +11,16 @@
 #   Args:
 #     $1 = PermitRootLogin mode (yes | prohibit-password)
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本按引导阶段切换 root 的 SSH 登录策略。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_root
 
 if [[ $# -ne 1 ]]; then
-  log_error "usage: $0 <yes|prohibit-password>"
+  log_error "用法：$0 <yes|prohibit-password>"
   exit 1
 fi
 
@@ -25,7 +30,7 @@ sshd_config='/etc/ssh/sshd_config'
 case "${mode}" in
   yes|prohibit-password) ;;
   *)
-    log_error "unsupported PermitRootLogin mode '${mode}'"
+    log_error "不支持的 PermitRootLogin 模式 '${mode}'"
     exit 1
     ;;
 esac
@@ -53,4 +58,4 @@ esac
 /usr/sbin/sshd -t -f "${sshd_config}"
 systemctl restart sshd
 
-log_success "Configured sshd: PermitRootLogin ${mode}"
+log_success "已配置 sshd：PermitRootLogin ${mode}"

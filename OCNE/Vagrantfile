@@ -13,6 +13,10 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# 中文说明：
+# - 该文件根据环境变量定义 Operator、控制平面和工作节点。
+# - 会拼装预配参数，并按节点角色调用统一的 provision.sh。
+
 # This Vagrantfile creates an Oracle Cloud Native Environment and
 # deploys the Kubernetes module to the control plane and worker nodes.
 # VMs communicate via a private network using subnet 192.168.99.* (by default):
@@ -42,6 +46,7 @@ BOX_URL = "https://oracle.github.io/vagrant-projects/boxes"
 BOX_NAME = "oraclelinux/8"
 
 # Define constants
+# 中文：这里集中读取环境变量并生成整套集群的默认值。
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Use vagrant-env plugin if available
   if Vagrant.has_plugin?("vagrant-env")
@@ -164,6 +169,7 @@ def update_os(vm)
   end
 end
 
+# 中文：统一拼装各节点的预配参数，避免角色分支重复。
 def provision_vm(vm, vm_args)
   args = vm_args.clone
   args.push("--ocne-environment-name", OCNE_ENV_NAME)
@@ -201,10 +207,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Unfortunately we can't use CIDR with no_proxy, so we have to enumerate and
   # 'blacklist' *all* IPs
   if Vagrant.has_plugin?("vagrant-proxyconf")
+    # 中文：为所有节点继承宿主机代理，便于拉取仓库和镜像。
     has_proxy = false
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        puts "HTTP proxy: " + proxy
+        puts "HTTP 代理：" + proxy
         config.proxy.http = ensure_scheme(proxy)
         has_proxy = true
         break
@@ -213,7 +220,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        puts "HTTPS proxy: " + proxy
+        puts "HTTPS 代理：" + proxy
         config.proxy.https = ensure_scheme(proxy)
         has_proxy = true
         break
@@ -226,7 +233,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ["no_proxy", "NO_PROXY"].each do |proxy_var|
         if ENV[proxy_var]
           no_proxy = ENV[proxy_var]
-          puts "No proxy: " + no_proxy
+          puts "不使用代理：" + no_proxy
           no_proxy += ","
           break
         end
@@ -246,6 +253,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # Workers provisioning
+  # 中文：先定义 worker，便于后续把节点列表传给 operator。
   workers = ""
   (1..NB_WORKERS).each do |i|
     config.vm.define "worker#{i}" do |worker|
@@ -281,6 +289,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # Control plane provisioning
+  # 中文：倒序创建控制平面，保证第一个节点最后拿到完整列表。
   control_planes = ""
   NB_CONTROL_PLANES.downto(1) do |i|
     config.vm.define "controlplane#{i}" do |control_plane|

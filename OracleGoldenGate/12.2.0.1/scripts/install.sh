@@ -7,28 +7,33 @@
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
 
-echo 'INSTALLER: Started up'
+# 中文说明：
+# - 此脚本安装 Oracle Database、GoldenGate、Kafka 及相关组件，并完成基础初始化。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
 
+echo '安装程序：已启动'
+
+# 先更新基础系统，避免后续安装缺少依赖或修复。
 # get up to date
 yum upgrade -y
 
-echo 'INSTALLER: System updated'
+echo '安装程序：系统已更新'
 
 # fix locale warning
 yum reinstall -y glibc-common
 echo LANG=en_US.utf-8 >> /etc/environment
 echo LC_ALL=en_US.utf-8 >> /etc/environment
 
-echo 'INSTALLER: Locale set'
+echo '安装程序：区域设置已完成'
 
 # set system time zone
 sudo timedatectl set-timezone $SYSTEM_TIMEZONE
-echo "INSTALLER: System time zone set to $SYSTEM_TIMEZONE"
+echo "安装程序：系统时区已设置为 $SYSTEM_TIMEZONE"
 
 # Install Oracle Database prereq and openssl packages
 yum install -y oracle-database-server-12cR2-preinstall openssl
 
-echo 'INSTALLER: Oracle preinstall and openssl complete'
+echo '安装程序：Oracle 预安装包和 openssl 已完成'
 
 # Create Directories
 mkdir -p /u01/ogg-installer
@@ -48,7 +53,7 @@ chown oracle:oinstall -R /u01/oggbd
 mkdir -p /u01/app
 ln -s $ORACLE_BASE /u01/app/oracle
 
-echo 'INSTALLER: Oracle directories created'
+echo '安装程序：Oracle 目录已创建'
 
 # set environment variables
 echo "export ORACLE_BASE=$ORACLE_BASE" >> /home/oracle/.bashrc
@@ -56,18 +61,18 @@ echo "export ORACLE_HOME=$ORACLE_HOME" >> /home/oracle/.bashrc
 echo "export ORACLE_SID=$ORACLE_SID" >> /home/oracle/.bashrc
 echo "export PATH=\$PATH:\$ORACLE_HOME/bin" >> /home/oracle/.bashrc
 
-echo 'INSTALLER: Environment variables set'
+echo '安装程序：环境变量已设置'
 
 # Install Java 8
-echo 'INSTALLER: Install Java 8'
+echo '安装程序：正在安装 Java 8'
 yum install -y java-$JAVA_VERSION-openjdk
 
 # Install Apache Kafka
 KAFKA_SCALA_VERSION="$SCALA_VERSION-$KAFKA_VERSION"
-echo "Downloading Apache Kafka Version $KAFKA_VERSION"
+echo "正在下载 Apache Kafka 版本 $KAFKA_VERSION"
 curl "https://downloads.apache.org/kafka/$KAFKA_VERSION/kafka_$KAFKA_SCALA_VERSION.tgz" -# -o /tmp/kafka_$KAFKA_SCALA_VERSION.tgz
 
-echo "Extracting Kafka to /usr/local/kafka/kafka_$KAFKA_SCALA_VERSION"
+echo "正在将 Kafka 解压到 /usr/local/kafka/kafka_$KAFKA_SCALA_VERSION"
 sudo tar -xzf /tmp/kafka_$KAFKA_SCALA_VERSION.tgz -C /usr/local/kafka/
 rm /tmp/kafka_$KAFKA_SCALA_VERSION.tgz
 
@@ -77,7 +82,7 @@ sudo cp /vagrant/scripts/services/kafka.service /etc/systemd/system/
 
 su -l oracle -c "echo 'export PATH=\$PATH:/usr/local/kafka/kafka_'$KAFKA_SCALA_VERSION'/bin/:' >> /home/oracle/.bashrc"
 
-echo 'Creating Zookeeper and Kafka System Services'
+echo '正在创建 Zookeeper 和 Kafka 的系统服务'
 
 sudo sed -i -e "s|###KAFKA_VERSION###|$KAFKA_SCALA_VERSION|g" /etc/systemd/system/zookeeper.service
 
@@ -91,8 +96,9 @@ sudo systemctl enable kafka
 sudo systemctl start zookeeper
 sudo systemctl start kafka
 
-echo 'INSTALLER: Apache Kafka Installed and Started'
+echo '安装程序：Apache Kafka 已安装并启动'
 
+# 完成中间件准备后，再安装数据库与 GoldenGate 组件。
 # Install Oracle
 
 unzip /vagrant/$ORACLE_DB_SETUP_FILE -d /tmp
@@ -105,7 +111,7 @@ $ORACLE_BASE/oraInventory/orainstRoot.sh
 $ORACLE_HOME/root.sh
 rm /tmp/db_install.rsp
 
-echo 'INSTALLER: Oracle software installed'
+echo '安装程序：Oracle 软件已安装'
 
 # create sqlnet.ora, listener.ora and tnsnames.ora
 su -l oracle -c "mkdir -p $ORACLE_HOME/network/admin"
@@ -137,9 +143,9 @@ su -l oracle -c "echo '$ORACLE_PDB=
 # Start LISTENER
 su -l oracle -c "lsnrctl start"
 
-echo 'INSTALLER: Listener created'
+echo '安装程序：监听器已创建'
 
-echo 'INSTALLER: Started GG installation'
+echo '安装程序：开始安装 GoldenGate'
 
 
 # Create database
@@ -162,9 +168,9 @@ su -l oracle -c "sqlplus / as sysdba <<EOF
 EOF"
 rm /tmp/dbca.rsp
 
-echo 'INSTALLER: Database created'
+echo '安装程序：数据库已创建'
 
-echo 'INSTALLER: Enabling Database-level Supplemental Logging'
+echo '安装程序：正在启用数据库级补充日志'
 su -l oracle -c "sqlplus / as sysdba <<EOF
     ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
     ALTER DATABASE FORCE LOGGING;
@@ -178,7 +184,7 @@ su -l oracle -c "sqlplus / as sysdba <<EOF
 EOF"
 
 sed '$s/N/Y/' /etc/oratab | sudo tee /etc/oratab > /dev/null
-echo 'INSTALLER: Oratab configured'
+echo '安装程序：oratab 已配置'
 
 # configure systemd to start oracle instance on startup
 sudo cp /vagrant/scripts/services/oracle-rdbms.service /etc/systemd/system/
@@ -186,7 +192,7 @@ sudo sed -i -e "s|###ORACLE_HOME###|$ORACLE_HOME|g" /etc/systemd/system/oracle-r
 sudo systemctl daemon-reload
 sudo systemctl enable oracle-rdbms
 sudo systemctl start oracle-rdbms
-echo "INSTALLER: Created and enabled oracle-rdbms systemd's service"
+echo "安装程序：已创建并启用 oracle-rdbms systemd 服务"
 
 # Install Golden Gate For Oracle
 sudo unzip /vagrant/$ORACLE_GG_SETUP_FILE -d /u01/ogg-installer
@@ -200,50 +206,51 @@ rm -rf /u01/ogg-installer
 rm /tmp/oggresponse.rsp
 chown -R oracle:oinstall /u01/ogg
 
-echo 'INSTALLER: Oracle Golden Gate Installed'
+echo '安装程序：Oracle GoldenGate 已安装'
 
 # Install Golden Gate For Big Data
-echo 'Installer: Install GG for Big Data'
+echo '安装程序：正在安装 GoldenGate for Big Data'
 unzip /vagrant/$ORACLE_GG_BD_SETUP_FILE -d /tmp/oggbd
 sudo tar -xvf /tmp/oggbd/*BigData_Linux*.tar -C /u01/oggbd/
 rm -rf /tmp/oggbd
 chown -R oracle:oinstall /u01/oggbd/
-echo 'INSTALLER: Oracle GG For Big Data Installed.'
+echo '安装程序：Oracle GoldenGate for Big Data 已安装。'
 
 
 sudo cp /vagrant/scripts/setPassword.sh /home/oracle/
 sudo chmod a+rx /home/oracle/setPassword.sh
 
-echo "INSTALLER: setPassword.sh file setup";
+echo "安装程序：setPassword.sh 文件已就绪";
 
+# 预留用户脚本钩子，便于追加业务初始化动作。
 # run user-defined post-setup scripts
-echo 'INSTALLER: Running user-defined post-setup scripts'
+echo '安装程序：正在运行用户自定义的后置脚本'
 
 for f in /vagrant/userscripts/*
   do
     case "${f,,}" in
       *.sh)
-        echo "INSTALLER: Running $f"
+        echo "安装程序：正在运行 $f"
         . "$f"
-        echo "INSTALLER: Done running $f"
+        echo "安装程序：已完成 $f"
         ;;
       *.sql)
-        echo "INSTALLER: Running $f"
+        echo "安装程序：正在运行 $f"
         su -l oracle -c "echo 'exit' | sqlplus -s / as sysdba @\"$f\""
-        echo "INSTALLER: Done running $f"
+        echo "安装程序：已完成 $f"
         ;;
       /vagrant/userscripts/put_custom_scripts_here.txt)
         :
         ;;
       *)
-        echo "INSTALLER: Ignoring $f"
+        echo "安装程序：忽略 $f"
         ;;
     esac
   done
 
-echo 'INSTALLER: Done running user-defined post-setup scripts'
+echo '安装程序：已完成用户自定义的后置脚本'
 
 
-echo "ORACLE PASSWORD FOR SYS, SYSTEM AND PDBADMIN: $ORACLE_PWD";
+echo "SYS、SYSTEM 和 PDBADMIN 的 Oracle 密码：$ORACLE_PWD";
 
-echo "INSTALLER: Installation complete, database ready to use!";
+echo "安装程序：安装完成，数据库已可使用！";

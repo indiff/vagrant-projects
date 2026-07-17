@@ -13,6 +13,9 @@
 #   # or, if execution policy allows:
 #   .\cleanup.ps1 [-Force]
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于在 Windows/PowerShell 下执行与 cleanup.sh 等价的清理流程。
+
 [CmdletBinding()]
 param(
     [Alias('f')][switch]$Force,
@@ -24,15 +27,16 @@ Set-Location -LiteralPath (Split-Path -Parent $PSScriptRoot)
 
 $Config = '.\config\vagrant.yml'
 if (-not (Test-Path -LiteralPath 'Vagrantfile')) {
-    Write-Error 'Vagrantfile not found; run from project root'; exit 1
+    Write-Error '未找到 Vagrantfile；请从项目根目录运行'; exit 1
 }
 if (-not (Test-Path -LiteralPath $Config)) {
-    Write-Error "$Config not found"; exit 1
+    Write-Error "未找到 $Config"; exit 1
 }
 
 # Minimal YAML scalar reader for the flat 2-level structure vagrant.yml uses
 # (top-level section, then 2-space-indented key: value lines). Mirrors the awk
 # logic in cleanup.sh so behaviour stays identical.
+# 中文：使用轻量解析逻辑读取 vagrant.yml，避免额外依赖。
 function Get-YamlValue {
     param([string]$Section, [string]$Key)
     $current = $null
@@ -61,30 +65,30 @@ $AsmPath  = Get-YamlValue -Section 'shared' -Key 'asm_disk_path'
 $Pool     = Get-YamlValue -Section 'shared' -Key 'storage_pool_name'
 
 if ([string]::IsNullOrEmpty($Provider) -or [string]::IsNullOrEmpty($Prefix) -or [string]::IsNullOrEmpty($AsmNum)) {
-    Write-Error "env.provider / shared.prefix_name / shared.asm_disk_num must be set in $Config"
+    Write-Error "必须在 $Config 中设置 env.provider / shared.prefix_name / shared.asm_disk_num"
     exit 1
 }
 $AsmNumInt = [int]$AsmNum
 
 if ($Help) {
 @"
-Usage: .\cleanup.ps1 [-Force]
-  Runs 'vagrant destroy -f' and removes shared ASM disks for the configured
-  provider ($Provider). Pass -Force to skip the confirmation prompt.
+用法：.\cleanup.ps1 [-Force]
+  执行 'vagrant destroy -f'，并删除当前配置使用的共享 ASM 磁盘
+  provider 为 $Provider。传入 -Force 可跳过确认提示。
 "@
     exit 0
 }
 
 if (-not $Force) {
-    Write-Host "This will:"
+    Write-Host "即将执行："
     Write-Host "  1. vagrant destroy -f"
-    Write-Host "  2. delete $AsmNumInt shared ASM disk(s) (provider: $Provider)"
+    Write-Host "  2. 删除 $AsmNumInt 个共享 ASM 磁盘（provider: $Provider）"
     if ($Provider -eq 'virtualbox') {
-        Write-Host "  3. delete per-node u01 disks (node1_u01.vdi, node2_u01.vdi)"
+        Write-Host "  3. 删除每个节点的 u01 磁盘（node1_u01.vdi、node2_u01.vdi）"
     }
     Write-Host ""
-    $ans = Read-Host 'Continue? [y/N]'
-    if ($ans -notmatch '^[yY]$') { Write-Host 'Aborted.'; exit 0 }
+    $ans = Read-Host '是否继续？[y/N]'
+    if ($ans -notmatch '^[yY]$') { Write-Host '已取消。'; exit 0 }
 }
 
 # Resolve VBoxManage: prefer PATH, then default install location.
@@ -110,39 +114,40 @@ function Invoke-VBoxCloseAndDelete {
     }
 }
 
-Write-Host '=== vagrant destroy -f ==='
+Write-Host '=== 执行 vagrant destroy -f ==='
 try { & vagrant destroy -f } catch { Write-Warning $_ }
 
+# 中文：按 provider 选择对应的磁盘清理实现。
 switch ($Provider) {
     'libvirt' {
         # libvirt isn't native on Windows; surface a clear error rather than
         # pretending to clean up. Users on Hyper-V/WSL should run cleanup.sh
         # from inside the Linux environment that actually hosts the pool.
-        Write-Error "provider 'libvirt' is not supported on Windows; run cleanup.sh from the Linux host that owns the pool"
+        Write-Error "provider 'libvirt' 在 Windows 上不受支持；请在拥有该存储池的 Linux 主机上运行 cleanup.sh"
         exit 1
     }
     'virtualbox' {
         $vbm = Get-VBoxManage
         if (-not $vbm) {
-            Write-Error 'VBoxManage.exe not found in PATH or default install location'
+            Write-Error '在 PATH 或默认安装位置中未找到 VBoxManage.exe'
             exit 1
         }
         $dir = if ([string]::IsNullOrEmpty($AsmPath)) { '.' } else { $AsmPath.TrimEnd('\','/') }
-        Write-Host "=== removing VirtualBox shared ASM disks from $dir ==="
+        Write-Host "=== 正在从 $dir 删除 VirtualBox 共享 ASM 磁盘 ==="
         for ($i = 0; $i -lt $AsmNumInt; $i++) {
             $p = [System.IO.Path]::GetFullPath((Join-Path $dir "asm_disk$i.vdi"))
             Invoke-VBoxCloseAndDelete -Path $p -VBoxManage $vbm
         }
-        Write-Host '=== removing per-node u01 disks ==='
+        Write-Host '=== 正在删除每个节点的 u01 磁盘 ==='
         foreach ($node_disk in 'node1_u01.vdi', 'node2_u01.vdi') {
             $p = [System.IO.Path]::GetFullPath((Join-Path '.' $node_disk))
             Invoke-VBoxCloseAndDelete -Path $p -VBoxManage $vbm
         }
     }
     default {
-        Write-Error "unknown provider '$Provider' in $Config"
+        Write-Error "未知 provider '$Provider'，位置：$Config"
         exit 1
     }
 }
 
-Write-Host 'Cleanup complete.'
+Write-Host '清理完成。'

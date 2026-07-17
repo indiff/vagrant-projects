@@ -8,7 +8,12 @@
 #   configuration after the root scripts have completed.
 #   Runs as the grid user.
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本执行 Grid Infrastructure 配置工具，完成集群或 Oracle Restart 配置。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_user grid
 for v in GI_HOME GRID_BASE ORA_INVENTORY ORA_LANGUAGES \
          CLUSTER_NAME SCAN_NAME SCAN_PORT \
@@ -18,7 +23,7 @@ done
 
 data_disks="$(ls -dm $(asm_disk_glob p1) | tr -d ' \n')"
 if [[ -z "${data_disks}" ]]; then
-  log_error "no DATA disks found using glob '$(asm_disk_glob p1)'"
+  log_error "使用 glob 未找到 DATA 磁盘 '$(asm_disk_glob p1)'"
   exit 1
 fi
 discovery_string="$(asm_disk_glob p1)"
@@ -26,6 +31,7 @@ discovery_string="$(asm_disk_glob p1)"
 log_info "Using ASM DATA discovery string '${discovery_string}'"
 log_info "Using ASM DATA disks '${data_disks}'"
 
+# 将静默安装所需参数集中组装，便于根据拓扑补充分支配置。
 rsp_args=(
   INVENTORY_LOCATION="${ORA_INVENTORY}"
   SELECTED_LANGUAGES="${ORA_LANGUAGES}"
@@ -74,7 +80,7 @@ else
   rsp_args+=(oracle_install_crs_ConfigureMgmtDB=true)
 fi
 
-log_section "Running gridSetup.sh -executeConfigTools"
+log_section "正在运行 gridSetup.sh -executeConfigTools"
 gridsetup_log="$(mktemp /tmp/gridSetup-executeConfigTools.XXXXXX.log)"
 if "${GI_HOME}/gridSetup.sh" \
      -silent -executeConfigTools \
@@ -86,16 +92,16 @@ else
 fi
 
 case "${rc}" in
-  0) log_success "gridSetup.sh -executeConfigTools completed" ;;
-  6) log_info    "gridSetup.sh -executeConfigTools completed with warnings (exit=6)" ;;
+  0) log_success "gridSetup.sh -executeConfigTools 已完成" ;;
+  6) log_info    "gridSetup.sh -executeConfigTools 已完成 with warnings (exit=6)" ;;
   255)
     if grep -Fq '[INS-43080]' "${gridsetup_log}" \
        && grep -Fq 'Some of the configuration assistants failed, were cancelled or skipped.' "${gridsetup_log}"; then
-      log_info "gridSetup.sh -executeConfigTools reported INS-43080 (exit=255); continuing and letting subsequent GI checks validate the stack"
+      log_info "gridSetup.sh -executeConfigTools 报告 INS-43080（exit=255）；继续执行，并交由后续 GI 检查验证堆栈状态"
     else
-      log_error "gridSetup.sh -executeConfigTools failed with exit=${rc}"
+      log_error "gridSetup.sh -executeConfigTools 失败，exit=${rc}"
       exit "${rc}"
     fi
     ;;
-  *) log_error   "gridSetup.sh -executeConfigTools failed with exit=${rc}"; exit "${rc}" ;;
+  *) log_error   "gridSetup.sh -executeConfigTools 失败，exit=${rc}"; exit "${rc}" ;;
 esac

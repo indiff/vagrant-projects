@@ -13,11 +13,17 @@
 #
 #│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
 
+# 中文说明：
+# - 此脚本重建主机名解析配置，确保容器和数据库节点名称可解析。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/config/setup.env
+# 加载 Vagrant 生成的运行参数和统一日志样式。
 echo "-----------------------------------------------------------------"
-echo -e "${INFO}`date +%F' '%T`: Setup /etc/hosts"
+echo -e "${INFO}`date +%F' '%T`: 正在配置 /etc/hosts"
 echo "-----------------------------------------------------------------"
 
+# 先重写 hosts 文件，再补充实验节点记录。
 cat > /etc/hosts <<EOF
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
@@ -29,7 +35,7 @@ ${NODE1_PUBLIC_IP}  ${NODE1_FQ_HOSTNAME}  ${NODE1_HOSTNAME}
 EOF
 
 echo "-----------------------------------------------------------------"
-echo -e "${INFO}`date +%F' '%T`: Setup /etc/resolv.conf"
+echo -e "${INFO}`date +%F' '%T`: 正在配置 /etc/resolv.conf"
 echo "-----------------------------------------------------------------"
 cat > /etc/resolv.conf <<EOF
 search ${DOMAIN_NAME}

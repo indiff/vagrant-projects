@@ -9,7 +9,12 @@
 #   127.0.0.1 so CVU / gethostbyname see SCAN resolve to 3 addresses (required
 #   to satisfy PRVG-11372 on Grid Infrastructure post-checks).
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本配置 /etc/hosts、dnsmasq 和 resolv.conf，以满足 SCAN 解析要求。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_root
 for v in NODE1_PUBLIC_IP NODE1_PRIV_IP NODE1_VIP_IP \
          NODE1_HOSTNAME NODE1_FQ_HOSTNAME \
@@ -20,7 +25,7 @@ for v in NODE1_PUBLIC_IP NODE1_PRIV_IP NODE1_VIP_IP \
   require_var "${v}"
 done
 
-log_section "Writing /etc/hosts"
+log_section "正在写入 /etc/hosts"
 # SCAN is intentionally NOT written to /etc/hosts — dnsmasq serves it with
 # all three A records so CVU sees a SCAN→3 IP mapping.
 {
@@ -61,7 +66,7 @@ EOF
   fi
 } > /etc/hosts
 
-log_section "Configuring dnsmasq for SCAN round-robin"
+log_section "正在为 SCAN 轮询解析配置 dnsmasq"
 install -d -m 0755 /etc/dnsmasq.d
 
 # host-record produces both forward (A) and reverse (PTR) records. Listing
@@ -86,11 +91,11 @@ host-record=${FQ_SCAN_NAME},${SCAN_NAME},${SCAN_IP2}
 host-record=${FQ_SCAN_NAME},${SCAN_NAME},${SCAN_IP3}
 EOF
 
-log_section "Enabling dnsmasq"
+log_section "正在启用 dnsmasq"
 systemctl enable dnsmasq
 systemctl restart dnsmasq
 
-log_section "Writing /etc/resolv.conf"
+log_section "正在写入 /etc/resolv.conf"
 # Prevent NetworkManager/DHCP from stomping the file on the next lease.
 # Clearing the immutable bit is a no-op if it was never set; re-setting is
 # idempotent across re-provisions.
@@ -101,13 +106,13 @@ nameserver 127.0.0.1
 EOF
 chattr +i /etc/resolv.conf 2>/dev/null || true
 
-log_section "Verifying SCAN resolution"
+log_section "正在验证 SCAN 解析结果"
 # Fail fast if dnsmasq isn't returning 3 A records — it's the whole point
 # of this script, and CVU will complain downstream if it's wrong.
 scan_count=$(getent ahostsv4 "${FQ_SCAN_NAME}" | awk '{print $1}' | sort -u | wc -l)
 if (( scan_count != 3 )); then
-  log_error "expected SCAN ${FQ_SCAN_NAME} to resolve to 3 IPs, got ${scan_count}"
+  log_error "预期 SCAN ${FQ_SCAN_NAME} 应解析到 3 个 IP，实际得到 ${scan_count} 个"
   getent ahostsv4 "${FQ_SCAN_NAME}" || true
   exit 1
 fi
-log_success "SCAN ${FQ_SCAN_NAME} resolves to 3 IPs via dnsmasq"
+log_success "SCAN ${FQ_SCAN_NAME} 已通过 dnsmasq 解析到 3 个 IP"

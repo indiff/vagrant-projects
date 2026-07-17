@@ -8,6 +8,9 @@
 #   Both accounts are created with a locked password (-p '!'). The orchestrator
 #   assigns the real passwords afterwards via chpasswd (no cleartext on argv).
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于创建 grid/oracle 账户、组以及对应的运行目录和配置。
+
 . /vagrant/scripts/_common.sh
 require_root
 for v in GRID_BASE DB_BASE GI_HOME \
@@ -15,7 +18,7 @@ for v in GRID_BASE DB_BASE GI_HOME \
   require_var "${v}"
 done
 
-log_section "Preparing oracle + grid users and groups"
+log_section "正在准备 oracle 和 grid 用户及用户组"
 
 # Drop any pre-existing accounts/groups from the base box. Failures tolerated.
 for u in oracle grid; do userdel -fr "${u}" 2>/dev/null || true; done
@@ -23,6 +26,7 @@ for g in oinstall dba backupdba dgdba kmdba racdba dbaoper asmadmin asmoper asmd
   groupdel "${g}" 2>/dev/null || true
 done
 
+# 中文：显式固定组号，减少不同节点间的环境差异。
 groupadd -g 1001 oinstall
 groupadd -g 1002 dbaoper
 groupadd -g 1003 dba
@@ -50,7 +54,7 @@ useradd grid \
   -G dbaoper,asmadmin,asmoper,asmdba \
   -p '!'
 
-log_section "Setting grid + oracle shell limits"
+log_section "正在设置 grid 和 oracle 的 shell 限制"
 limits_file='/etc/security/limits.d/99-oracle-rac.conf'
 cat > "${limits_file}" <<'EOF'
 # Oracle RAC user limits (managed by Vagrant provisioner)
@@ -78,12 +82,12 @@ oracle hard stack    32768
 EOF
 chmod 0644 "${limits_file}"
 
-log_section "Creating GI_HOME directorie"
+log_section "正在创建 GI_HOME 目录"
 mkdir -p "${GRID_BASE}" "${DB_BASE}" "${GI_HOME}"
 chown -R grid:oinstall   /u01 "${GRID_BASE}" "${GI_HOME}" "${DB_BASE}"
 chmod -R u+rwX,g+rwX     /u01
 
-log_section "Writing grid and oracle user profiles"
+log_section "正在写入 grid 和 oracle 用户配置文件"
 host="$(hostname -s)"
 
 # Per-node ORACLE_SID suffix — only differs in clustered mode.
@@ -91,7 +95,7 @@ case "${host}" in
   "${NODE1_HOSTNAME}") sid_suffix_grid='1'; sid_suffix_db='1' ;;
   "${NODE2_HOSTNAME}") sid_suffix_grid='2'; sid_suffix_db='2' ;;
   *)
-    log_error "hostname '${host}' is neither ${NODE1_HOSTNAME} nor ${NODE2_HOSTNAME}"
+    log_error "主机名 '${host}' 既不是 ${NODE1_HOSTNAME}，也不是 ${NODE2_HOSTNAME}"
     exit 1
     ;;
 esac

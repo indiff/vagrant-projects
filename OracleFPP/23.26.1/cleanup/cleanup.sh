@@ -9,17 +9,21 @@
 #   shared media isn't auto-deleted because it can belong to multiple VMs, but
 #   in this project it's always project-scoped, so full cleanup is desired.
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于销毁 FPP 实验环境，并按 provider 清理残留的共享 ASM 磁盘。
+
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
 CONFIG=./config/vagrant.yml
-[[ -f Vagrantfile ]] || { echo "ERROR: Vagrantfile not found; run from project root" >&2; exit 1; }
-[[ -f "$CONFIG"   ]] || { echo "ERROR: $CONFIG not found" >&2; exit 1; }
+[[ -f Vagrantfile ]] || { echo "错误：未找到 Vagrantfile；请从项目根目录运行" >&2; exit 1; }
+[[ -f "$CONFIG"   ]] || { echo "错误：$CONFIG not found" >&2; exit 1; }
 
 # Minimal YAML scalar reader for the flat 2-level structure vagrant.yml uses
 # (top-level section, then 2-space-indented key: value lines). Avoids a ruby /
 # pyyaml dependency — Vagrant's embedded Ruby isn't on PATH.
+# 中文：用最小依赖的方式读取 vagrant.yml 中的关键标量配置。
 yaml_get() {
   local section="$1" key="$2"
   awk -v s="$section" -v k="$key" '
@@ -47,7 +51,7 @@ ASM_PATH=$(yaml_get shared asm_disk_path)
 POOL=$(yaml_get shared storage_pool_name)
 
 if [[ -z "$PROVIDER" || -z "$PREFIX" || -z "$ASM_NUM" ]]; then
-  echo "ERROR: env.provider / shared.prefix_name / shared.asm_disk_num must be set in $CONFIG" >&2
+  echo "错误：env.provider / shared.prefix_name / shared.asm_disk_num must be set in $CONFIG" >&2
   exit 1
 fi
 
@@ -55,26 +59,26 @@ FORCE=0
 case "${1-}" in
   -f|--force) FORCE=1 ;;
   -h|--help)  cat <<EOF
-Usage: $0 [-f|--force]
-  Runs 'vagrant destroy -f' and removes shared ASM disks for the configured
-  provider ($PROVIDER). Pass -f to skip the confirmation prompt.
+用法：$0 [-f|--force]
+  执行 'vagrant destroy -f'，并删除当前配置使用的共享 ASM 磁盘
+  provider 为 $PROVIDER。传入 -f 可跳过确认提示。
 EOF
               exit 0 ;;
 esac
 
 if [[ $FORCE -eq 0 ]]; then
   cat <<EOF
-This will:
+即将执行：
   1. vagrant destroy -f
   2. delete ${ASM_NUM} shared ASM disk(s) (provider: ${PROVIDER})
 EOF
-  [[ "$PROVIDER" == "virtualbox" ]] && echo "  3. delete per-node u01 disks (node1_u01.vdi, node2_u01.vdi)"
+  [[ "$PROVIDER" == "virtualbox" ]] && echo "  3. 删除每个节点的 u01 磁盘（node1_u01.vdi、node2_u01.vdi）"
   echo ""
-  read -rp "Continue? [y/N] " ans
-  [[ "$ans" =~ ^[yY]$ ]] || { echo "Aborted."; exit 0; }
+  read -rp "是否继续？[y/N] " ans
+  [[ "$ans" =~ ^[yY]$ ]] || { echo "已取消。"; exit 0; }
 fi
 
-echo "=== vagrant destroy -f ==="
+echo "=== 执行 vagrant destroy -f ==="
 vagrant destroy -f || true
 
 vbox_close_and_delete() {
@@ -87,16 +91,17 @@ vbox_close_and_delete() {
   rm -f "$path"
 }
 
+# 中文：按 provider 选择对应的磁盘清理实现。
 case "$PROVIDER" in
   libvirt)
     POOL="${POOL:-default}"
-    echo "=== removing ASM volumes from libvirt pool '$POOL' ==="
+    echo "=== 正在从 libvirt 存储池 '$POOL' 删除 ASM 卷 ==="
     for ((i=0; i<ASM_NUM; i++)); do
       vol="${PREFIX}_asm_${i}"
       if virsh vol-info --pool "$POOL" "$vol" >/dev/null 2>&1; then
         virsh vol-delete --pool "$POOL" "$vol"
       else
-        echo "  skip: $vol (not present)"
+        echo "  跳过：$vol（不存在）"
       fi
     done
     virsh pool-refresh "$POOL" >/dev/null 2>&1 || true
@@ -104,19 +109,19 @@ case "$PROVIDER" in
   virtualbox)
     dir="${ASM_PATH%/}"
     [[ -z "$dir" ]] && dir="."
-    echo "=== removing VirtualBox shared ASM disks from $dir ==="
+    echo "=== 正在从 $dir 删除 VirtualBox 共享 ASM 磁盘 ==="
     for ((i=0; i<ASM_NUM; i++)); do
       vbox_close_and_delete "$(realpath -m "$dir/asm_disk${i}.vdi")"
     done
-    echo "=== removing per-node u01 disks ==="
+    echo "=== 正在删除每个节点的 u01 磁盘 ==="
     for node_disk in node1_u01.vdi node2_u01.vdi; do
       vbox_close_and_delete "$(realpath -m "./$node_disk")"
     done
     ;;
   *)
-    echo "ERROR: unknown provider '$PROVIDER' in $CONFIG" >&2
+    echo "错误：$CONFIG 中存在未知 provider '$PROVIDER'" >&2
     exit 1
     ;;
 esac
 
-echo "Cleanup complete."
+echo "清理完成。"

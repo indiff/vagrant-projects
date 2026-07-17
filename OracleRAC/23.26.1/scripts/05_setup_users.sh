@@ -8,14 +8,19 @@
 #   Both accounts are created with a locked password (-p '!'). The orchestrator
 #   assigns the real passwords afterwards via chpasswd (no cleartext on argv).
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本创建 grid 和 oracle 用户、用户组、目录及登录环境。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_root
 for v in GRID_BASE DB_BASE GI_HOME DB_HOME DB_NAME \
          NODE1_HOSTNAME NODE2_HOSTNAME ORESTART; do
   require_var "${v}"
 done
 
-log_section "Preparing oracle + grid users and groups"
+log_section "正在准备 oracle 和 grid 用户及用户组"
 
 # Drop any pre-existing accounts/groups from the base box. Failures tolerated.
 for u in oracle grid; do userdel -fr "${u}" 2>/dev/null || true; done
@@ -50,7 +55,7 @@ useradd grid \
   -G dbaoper,asmadmin,asmoper,asmdba \
   -p '!'
 
-log_section "Setting grid + oracle shell limits"
+log_section "正在设置 grid 和 oracle 的 shell 限制"
 limits_file='/etc/security/limits.d/99-oracle-rac.conf'
 cat > "${limits_file}" <<'EOF'
 # Oracle RAC user limits (managed by Vagrant provisioner)
@@ -78,13 +83,13 @@ oracle hard stack    32768
 EOF
 chmod 0644 "${limits_file}"
 
-log_section "Creating GI_HOME + DB_HOME directories"
+log_section "正在创建 GI_HOME 和 DB_HOME 目录"
 mkdir -p "${GRID_BASE}" "${DB_BASE}" "${GI_HOME}" "${DB_HOME}"
 chown -R grid:oinstall   /u01 "${GRID_BASE}" "${GI_HOME}"
 chown -R oracle:oinstall "${DB_BASE}" "${DB_HOME}"
 chmod -R u+rwX,g+rwX     /u01
 
-log_section "Writing grid and oracle user profiles"
+log_section "正在写入 grid 和 oracle 的用户配置文件"
 host="$(hostname -s)"
 
 # Per-node ORACLE_SID suffix — only differs in clustered mode.

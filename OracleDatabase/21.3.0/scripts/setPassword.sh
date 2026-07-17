@@ -12,20 +12,25 @@
 #
 
 # Abort on any error
+# 中文说明：
+# 用于统一修改数据库账户口令；较新版本还会遍历已打开的 PDB。
+
 set -Eeuo pipefail
 
 ORACLE_PWD=$1
 
+# 中文：先统一修改 SYS / SYSTEM 账户密码。
 sqlplus / as sysdba << EOF
   ALTER USER SYS IDENTIFIED BY "$ORACLE_PWD";
   ALTER USER SYSTEM IDENTIFIED BY "$ORACLE_PWD";
 EOF
 
-echo 'Setting PDBADMIN password in open PDBs'
+echo '正在为已打开的 PDB 设置 PDBADMIN 密码'
 
 set_pdbadmin_pw=$(mktemp)
 trap 'rm -f "${set_pdbadmin_pw}"' EXIT
 
+# 中文：为所有已打开的 PDB 动态生成并执行改密语句。
 sqlplus -s / as sysdba > "${set_pdbadmin_pw}" << EOF
   SET HEADING OFF LINESIZE 120 PAGESIZE 0
   SELECT   'ALTER SESSION SET CONTAINER = ' || name || ';' || CHR(10)
@@ -51,4 +56,4 @@ sed -i -e 's|no rows selected|PROMPT No open PDBs found|' "${set_pdbadmin_pw}"
 
 echo 'EXIT' | sqlplus -s / as sysdba @"${set_pdbadmin_pw}"
 
-echo 'Done setting PDBADMIN password in open PDBs'
+echo '已完成为已打开的 PDB 设置 PDBADMIN 密码'

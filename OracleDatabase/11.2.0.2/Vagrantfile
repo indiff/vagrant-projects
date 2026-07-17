@@ -15,6 +15,9 @@
 
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
+# 中文说明：
+# 用于定义 Oracle Database 虚拟机参数，并把首次启动所需变量传给安装脚本。
+
 require 'yaml'
 
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
@@ -30,6 +33,7 @@ ui = Vagrant::UI::Prefixed.new(Vagrant::UI::Colored.new, "vagrant")
 # Define constants
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Load configuration parameters into environment
+  # 中文：优先读取本地覆盖配置，再回落到仓库默认配置。
   ['config.local.yaml', 'config.yaml'].each do |f|
     cfg = File.file?(f) ? YAML.safe_load_file(f, freeze: true) : {}
     cfg && cfg.each do |key, value|
@@ -93,12 +97,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # add proxy configuration from host env - optional
+  # 中文：将宿主机代理设置透传到虚拟机，便于下载安装依赖。
   if Vagrant.has_plugin?("vagrant-proxyconf")
-    ui.info "Getting Proxy Configuration from Host..."
+    ui.info "正在从宿主机获取代理配置..."
     has_proxy = false
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTP proxy: " + proxy
+        ui.info "HTTP 代理：" + proxy
         config.proxy.http = proxy
         has_proxy = true
         break
@@ -107,7 +112,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTPS proxy: " + proxy
+        ui.info "HTTPS 代理：" + proxy
         config.proxy.https = proxy
         has_proxy = true
         break
@@ -120,7 +125,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ["no_proxy", "NO_PROXY"].each do |proxy_var|
         if ENV[proxy_var]
           no_proxy = ENV[proxy_var]
-          ui.info "No proxy: " + no_proxy
+          ui.info "不使用代理：" + no_proxy
           no_proxy += ","
           break
         end
@@ -130,7 +135,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   else
     ["http_proxy", "HTTP_PROXY", "https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if ENV[proxy_var]
-        ui.warn 'To enable proxies in your VM, install the vagrant-proxyconf plugin'
+        ui.warn '若要在虚拟机中启用代理，请安装 vagrant-proxyconf 插件'
         break
       end
     end
@@ -143,6 +148,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: VM_LISTENER_PORT, host: VM_LISTENER_PORT
 
   # Provision everything on the first run
+  # 中文：首次启动时把关键参数传给安装脚本，完成数据库部署。
   config.vm.provision "shell", path: "scripts/install.sh", env:
     {
        "SYSTEM_TIMEZONE"     => VM_SYSTEM_TIMEZONE,

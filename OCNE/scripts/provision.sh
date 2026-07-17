@@ -12,6 +12,10 @@
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
 
+# 中文说明：
+# - 该脚本按节点角色安装 Oracle Cloud Native Environment 组件。
+# - Operator 节点负责集群部署、附加模块安装以及收尾修复。
+
 #######################################
 # Convenience function used to limit output during provisioning
 # Exit on error
@@ -29,6 +33,7 @@
 #   None
 #######################################
 echo_do() {
+  # 中文：将命令输出暂存到日志文件，失败时只展示关键尾部内容。
   local tmp_file
   local ret_code
 
@@ -38,10 +43,10 @@ echo_do() {
   ret_code=$?
   if [[ ${ret_code} -ne 0 ]]; then
     [[ -z "${VERBOSE}" ]] && echo "$@"
-    echo "Returned a non-zero code: ${ret_code}" >&2
-    echo "Last output lines:" >&2
+    echo "命令返回了非零状态码：${ret_code}" >&2
+    echo "最后几行输出：" >&2
     tail -5 "${tmp_file}" >&2
-    echo "See ${tmp_file} for details" >&2
+    echo "详情请查看 ${tmp_file}" >&2
     exit ${ret_code}
   fi
   rm "${tmp_file}"
@@ -103,7 +108,7 @@ parse_args() {
         ;;
       "--ocne-environment-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --ocne-environment-name" >&2
+          echo "--ocne-environment-name 缺少参数" >&2
           exit 1
         fi
         OCNE_ENV_NAME="$2"
@@ -111,7 +116,7 @@ parse_args() {
         ;;
       "--ocne-cluster-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --ocne-cluster-name" >&2
+          echo "--ocne-cluster-name 缺少参数" >&2
           exit 1
         fi
         OCNE_CLUSTER_NAME="$2"
@@ -119,7 +124,7 @@ parse_args() {
         ;;
       "--repo")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --repo" >&2
+          echo "--repo 缺少参数" >&2
 	        exit 1
         fi
         EXTRA_REPO="$2"
@@ -127,7 +132,7 @@ parse_args() {
         ;;
       "--registry-ocne")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --registry-ocne" >&2
+          echo "--registry-ocne 缺少参数" >&2
 	        exit 1
         fi
         REGISTRY_OCNE="$2"
@@ -135,7 +140,7 @@ parse_args() {
         ;;
       "--control-planes")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --control-planes" >&2
+          echo "--control-planes 缺少参数" >&2
 	        exit 1
         fi
         CONTROL_PLANES="$2"
@@ -143,7 +148,7 @@ parse_args() {
         ;;
       "--workers")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --workers" >&2
+          echo "--workers 缺少参数" >&2
 	        exit 1
         fi
         WORKERS="$2"
@@ -155,7 +160,7 @@ parse_args() {
         ;;
       "--calico-module-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --calico-module-name" >&2
+          echo "--calico-module-name 缺少参数" >&2
 	        exit 1
         fi
         CALICO_MODULE_NAME="$2"
@@ -167,7 +172,7 @@ parse_args() {
         ;;
       "--multus-module-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --multus-module-name" >&2
+          echo "--multus-module-name 缺少参数" >&2
 	        exit 1
         fi
         MULTUS_MODULE_NAME="$2"
@@ -179,7 +184,7 @@ parse_args() {
         ;;
       "--helm-module-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --helm-module-name" >&2
+          echo "--helm-module-name 缺少参数" >&2
 	        exit 1
         fi
         HELM_MODULE_NAME="$2"
@@ -191,7 +196,7 @@ parse_args() {
         ;;
       "--istio-module-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --istio-module-name" >&2
+          echo "--istio-module-name 缺少参数" >&2
 	        exit 1
         fi
         ISTIO_MODULE_NAME="$2"
@@ -203,7 +208,7 @@ parse_args() {
         ;;
       "--metallb-module-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --metallb-module-name" >&2
+          echo "--metallb-module-name 缺少参数" >&2
 	        exit 1
         fi
         METALLB_MODULE_NAME="$2"
@@ -215,7 +220,7 @@ parse_args() {
         ;;
       "--gluster-module-name")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --gluster-module-name" >&2
+          echo "--gluster-module-name 缺少参数" >&2
 	        exit 1
         fi
         GLUSTER_MODULE_NAME="$2"
@@ -223,7 +228,7 @@ parse_args() {
         ;;
       "--subnet")
         if [[ $# -lt 2 ]]; then
-          echo "Missing parameter for --subnet" >&2
+          echo "--subnet 缺少参数" >&2
           exit 1
         fi
         SUBNET="$2"
@@ -234,7 +239,7 @@ parse_args() {
         shift
         ;;
       *)
-        echo "Invalid parameter: $1" >&2
+        echo "无效参数：$1" >&2
         exit 1
         ;;
     esac
@@ -261,12 +266,14 @@ parse_args() {
 # Returns:
 #   None
 #######################################
+# 中文：根据节点角色启用所需的软件仓库。
 setup_repos() {
-  msg "Configure dnf repos for Oracle Cloud Native Environment"
+  msg "配置 Oracle Cloud Native Environment 的 dnf 仓库"
 
   # Workaround for ol8_developer channels not available bug
   echo_do sudo dnf install -y oraclelinux-developer-release-el8
 
+  # 中文：只有 operator 节点负责触发集群级部署动作。
   if [[ ${OPERATOR} == 1 ]]; then
       echo_do sudo dnf install -y oracle-olcne-release-el8
       echo_do sudo dnf config-manager --enable ol8_olcne19 ol8_addons ol8_baseos_latest ol8_appstream ol8_kvm_appstream ol8_UEKR7
@@ -292,20 +299,20 @@ setup_repos() {
 prerequisites() {
 
   if [[ ${DEPLOY_CALICO} == 1 ]]; then
-    msg "Installing kernel-uek-modules for calico" 
+    msg "为 Calico 安装 kernel-uek-modules" 
     echo_do sudo dnf install -y kernel-uek-modules-$(uname -r) 
   fi 
 
   if [[ ${DEPLOY_GLUSTER} == 1 ]]; then
     if [[ ${WORKER} == 1 ]]; then
-      msg "Installing the GlusterFS Server on Worker node"
+      msg "在 Worker 节点上安装 GlusterFS Server"
       echo_do sudo dnf install -y oracle-gluster-release-el8
       echo_do sudo dnf config-manager --enable ol8_gluster_appstream
       echo_do sudo dnf module enable -y glusterfs
       echo_do sudo dnf install -y @glusterfs/server
       # Enable TLS / Management Encryption
       # https://docs.oracle.com/en/operating-systems/oracle-linux/gluster-storage/gluster-install-upgrade.html#gluster-tls
-      msg "Enable GlusterFS Transport Layer Security (TLS) for Management Encryption"
+      msg "为管理加密启用 GlusterFS TLS"
       echo_do sudo openssl genrsa -out /etc/ssl/glusterfs.key 2048
       echo_do sudo openssl req -new -x509 -days 365 -key /etc/ssl/glusterfs.key -out /etc/ssl/glusterfs.pem -subj '/CN=`hostname -f`'
       echo_do eval "cat /etc/ssl/glusterfs.pem >> /vagrant/glusterfs.ca"
@@ -316,14 +323,14 @@ prerequisites() {
 
     if [[ ${OPERATOR} == 1 ]]; then
       if [[ -f "/vagrant/glusterfs.ca" ]]; then
-        msg "Distributing GlusterFS Certificate Authority's (CA) certificates"
+        msg "分发 GlusterFS 证书颁发机构（CA）证书"
         for node in ${WORKERS//,/ }; do
           echo_do ssh -i /vagrant/id_rsa -o "UserKnownHostsFile=/vagrant/known_hosts" "${node}" "sudo cp /vagrant/glusterfs.ca /etc/ssl/glusterfs.ca"
         done
         echo_do "rm -f /vagrant/glusterfs.ca"
       fi
 	
-      msg "Installing the Heketi Server & CLI on Operator node"
+      msg "在 Operator 节点上安装 Heketi Server 和 CLI"
       echo_do sudo dnf install -y oracle-gluster-release-el8
       echo_do sudo dnf config-manager --enable ol8_gluster_appstream
       echo_do sudo dnf module enable -y glusterfs
@@ -332,13 +339,13 @@ prerequisites() {
 	# Standalone operator
 	echo_do sudo firewall-cmd --add-port=8080/tcp --permanent
       fi
-      msg "Modifying the default /etc/heketi/heketi.json onto /vagrant/heketi.json"
+      msg "将默认 /etc/heketi/heketi.json 调整后写入 /vagrant/heketi.json"
       echo_do sudo dnf install -y jq
       contents="$(jq '.use_auth=true|.jwt.admin.key="secret"|.glusterfs.executor="ssh"|.glusterfs.sshexec.keyfile="/etc/heketi/vagrant_key"|.glusterfs.sshexec.user="vagrant"|.glusterfs.sshexec.sudo=true|del(.glusterfs.sshexec.port)|del(.glusterfs.sshexec.fstab)|.glusterfs.loglevel="info"' /etc/heketi/heketi.json)" && echo -E "${contents}" > /vagrant/heketi.json
       echo_do sudo cp /vagrant/heketi.json /etc/heketi/heketi.json
       echo_do rm -f /vagrant/heketi.json
       # SSH Key *MUST* be in PEM format! Heketi would reject it otherwise.
-      msg "Copying the Vagrant SSH Key. Must be in PEM format!"
+      msg "复制 Vagrant SSH 密钥，必须为 PEM 格式！"
       echo_do sudo cp /vagrant/id_rsa /etc/heketi/vagrant_key
       # Fix default permission which exposes the secret /etc/heketi/heketi.json
       echo_do sudo chmod 0600 /etc/heketi/vagrant_key /etc/heketi/heketi.json
@@ -346,15 +353,15 @@ prerequisites() {
       # Enable Heketi
       echo_do sudo systemctl enable --now heketi.service
       # Test Heketi
-      msg "Waiting to Heketi service to become ready"
+      msg "等待 Heketi 服务就绪"
       echo_do curl --retry-connrefused --retry 10 --retry-delay 5 127.0.0.1:8080/hello
       # Heketi ready
-      msg "Creating Gluster Topology file /etc/heketi/topology-ocne.json"
+      msg "创建 Gluster 拓扑文件 /etc/heketi/topology-ocne.json"
       # https://github.com/heketi/heketi/blob/master/docs/admin/topology.md
       jq -R '{clusters:[{nodes:(./","|map({node:{hostnames:{manage:[.],storage:[.]},zone:1},devices:[{name:"/dev/sdb",destroydata:false}]}))}]}' <<< "${WORKERS}" > /vagrant/topology-ocne.json
       echo_do sudo cp /vagrant/topology-ocne.json /etc/heketi/topology-ocne.json
       echo_do sudo chown heketi: /etc/heketi/topology-ocne.json
-      msg "Loading Gluster Cluster Topology with Heketi"
+      msg "使用 Heketi 加载 Gluster 集群拓扑"
       # export HEKETI_CLI_USER=admin; export HEKETI_CLI_KEY=secret
       echo_do heketi-cli --user=admin --secret=secret topology load --json=/etc/heketi/topology-ocne.json
       echo_do rm -f /vagrant/topology-ocne.json
@@ -374,7 +381,7 @@ prerequisites() {
 #   None
 #######################################
 clean_networking() {
-  msg "Removing extra NetworkManager connection"
+  msg "移除多余的 NetworkManager 连接"
   nmcli -f GENERAL.STATE con show "Wired connection 1" && sudo nmcli con del "Wired connection 1"
 }
 
@@ -388,15 +395,15 @@ clean_networking() {
 #   None
 #######################################
 passwordless_ssh() {
-  msg "Allow passwordless ssh between VMs"
+  msg "允许虚拟机之间免密 SSH"
   # Generate common key
   if [[ ! -f /vagrant/id_rsa && ! -f /vagrant/id_rsa ]]; then
-    msg "Generating shared SSH keypair in PEM format"
+    msg "生成 PEM 格式的共享 SSH 密钥对"
     echo_do ssh-keygen -m PEM -t rsa -f /vagrant/id_rsa -q -N "''" -C "'vagrant@ocne'"
   fi
   # Generate known_hosts
   if [[ ! -f /vagrant/known_hosts ]]; then
-    msg "Generating shared SSH Known Hosts file"
+    msg "生成共享 SSH Known Hosts 文件"
     echo_do cp /dev/null /vagrant/known_hosts
   fi  
   # Install private key & set permissions
@@ -409,16 +416,16 @@ passwordless_ssh() {
   # Last node removes the key
   if [[ ${OPERATOR} == 1 ]]; then
     if [[ -f /vagrant/id_rsa && -f /vagrant/id_rsa.pub ]]; then
-      msg "Removing the shared SSH keypair"
+      msg "删除共享 SSH 密钥对"
       echo_do rm -f /vagrant/id_rsa /vagrant/id_rsa.pub
     fi
     if [[ -f /vagrant/known_hosts ]]; then
-      msg "Copying SSH Host Keys to allow StrictHostKeyChecking"
+      msg "复制 SSH 主机密钥以启用 StrictHostKeyChecking"
       echo_do "[ -f /etc/ssh/ssh_known_hosts ] || sudo cp /vagrant/known_hosts /etc/ssh/ssh_known_hosts"
       for node in ${CONTROL_PLANES//,/ } ${WORKERS//,/ }; do
 	echo_do ssh "${node}" "sudo cp /vagrant/known_hosts /etc/ssh/ssh_known_hosts"
       done
-      msg "Removing the shared SSH Known Hosts file"
+      msg "删除共享 SSH Known Hosts 文件"
       echo_do rm -f /vagrant/known_hosts
     fi
   fi
@@ -465,10 +472,10 @@ quick_install_ocne() {
     provision_opts=("${provision_opts[@]}" --debug)
   fi
 
-  msg "Provision the OCNE cluster with quick install"
+  msg "使用快速安装预配 OCNE 集群"
   echo_do olcnectl provision "${provision_opts[@]}" --yes --timeout 20
 
-  msg "Update config to avoid having to enter the --api-server option in future olcnectl commands"
+  msg "更新配置，后续执行 olcnectl 时无需重复填写 --api-server"
   echo_do olcnectl module instances \
     --api-server "${api_server}:8091" \
     --environment-name "${OCNE_ENV_NAME}" \
@@ -489,10 +496,11 @@ quick_install_ocne() {
 # Returns:
 #   None
 #######################################
+# 中文：按需部署 Calico、Multus、MetalLB 等附加模块。
 deploy_modules() {
   local node control_plane_nodes worker_nodes
 
-  msg "Deploying additional modules"
+  msg "部署附加模块"
 
   # Calico networking module
   if [[ ${DEPLOY_CALICO} == 1 ]]; then
@@ -500,7 +508,7 @@ deploy_modules() {
     # BEGIN WORKAROUND: recreate Kubernetes module until calico can be installed 
     # with olcnectl provision quick installation
 
-    msg "Workaround: recreate Kubernetes module for Calico pod-network"
+    msg "兼容性处理：为 Calico pod-network 重新创建 Kubernetes 模块"
 
     control_plane_nodes="${CONTROL_PLANES//,/:8090,}:8090"
     worker_nodes="${WORKERS//,/:8090,}:8090"
@@ -548,7 +556,7 @@ EOF"
     fi
 
     # Create the Calico networking module
-    msg "Creating the Calico networking module: ${CALICO_MODULE_NAME}"
+    msg "创建 Calico 网络模块：${CALICO_MODULE_NAME}"
     echo_do olcnectl module create \
       --environment-name "${OCNE_ENV_NAME}" \
       --module calico \
@@ -557,13 +565,13 @@ EOF"
       --calico-installation-config /vagrant/calico-config.yaml
 
     # Validate the Calico networking module
-    msg "Validating the Calico networking module: ${CALICO_MODULE_NAME}"
+    msg "校验 Calico 网络模块：${CALICO_MODULE_NAME}"
     echo_do olcnectl module validate \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${CALICO_MODULE_NAME}"
 
     # Deploy the Calico networking module
-    msg "Deploying the Calico module: ${CALICO_MODULE_NAME} into ${OCNE_CLUSTER_NAME}"
+    msg "将 Calico 模块 ${CALICO_MODULE_NAME} 部署到 ${OCNE_CLUSTER_NAME}"
     echo_do olcnectl module install \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${CALICO_MODULE_NAME}"
@@ -593,7 +601,7 @@ EOF"
 EOF"
     fi
     # Create the Multus networking module
-    msg "Creating the Multus networking module: ${MULTUS_MODULE_NAME}"
+    msg "创建 Multus 网络模块：${MULTUS_MODULE_NAME}"
     echo_do olcnectl module create \
       --environment-name "${OCNE_ENV_NAME}" \
       --module multus \
@@ -602,13 +610,13 @@ EOF"
       --multus-installation-config /vagrant/multus-config.yaml
 
     # Validate the Multus networking module
-    msg "Validating the Multus networking module: ${MULTUS_MODULE_NAME}"
+    msg "校验 Multus 网络模块：${MULTUS_MODULE_NAME}"
     echo_do olcnectl module validate \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${MULTUS_MODULE_NAME}"
 
     # Deploy the Multus networking module
-    msg "Deploying the Multus module: ${MULTUS_MODULE_NAME} into ${OCNE_CLUSTER_NAME}"
+    msg "将 Multus 模块 ${MULTUS_MODULE_NAME} 部署到 ${OCNE_CLUSTER_NAME}"
     echo_do olcnectl module install \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${MULTUS_MODULE_NAME}"
@@ -618,7 +626,7 @@ EOF"
   if [[ ${DEPLOY_HELM} == 1 ]]; then
 
     # Create the Helm module
-    msg "Creating the Helm module (deprecated): ${HELM_MODULE_NAME}"
+    msg "创建 Helm 模块（已弃用）：${HELM_MODULE_NAME}"
     echo_do olcnectl module create \
       --environment-name "${OCNE_ENV_NAME}" \
       --module helm \
@@ -626,13 +634,13 @@ EOF"
       --helm-kubernetes-module "${OCNE_CLUSTER_NAME}"
 
     # Validate the Helm module
-    msg "Validating the Helm module: ${HELM_MODULE_NAME}"
+    msg "校验 Helm 模块：${HELM_MODULE_NAME}"
     echo_do olcnectl module validate \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${HELM_MODULE_NAME}"
 
     # Deploy the Helm module
-    msg "Deploying the Helm module: ${HELM_MODULE_NAME} into ${OCNE_CLUSTER_NAME}"
+    msg "将 Helm 模块 ${HELM_MODULE_NAME} 部署到 ${OCNE_CLUSTER_NAME}"
     echo_do olcnectl module install \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${HELM_MODULE_NAME}"
@@ -642,7 +650,7 @@ EOF"
   if [[ ${DEPLOY_ISTIO} == 1 ]]; then
 
     # Create the Istio module
-    msg "Creating the Istio module: ${ISTIO_MODULE_NAME}"
+    msg "创建 Istio 模块：${ISTIO_MODULE_NAME}"
     echo_do olcnectl module create \
       --environment-name "${OCNE_ENV_NAME}" \
       --module istio \
@@ -652,13 +660,13 @@ EOF"
 
 
     # Validate the Istio module
-    msg "Validating the Istio module: ${ISTIO_MODULE_NAME}"
+    msg "校验 Istio 模块：${ISTIO_MODULE_NAME}"
     echo_do olcnectl module validate \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${ISTIO_MODULE_NAME}"
 
     # Deploy the Istio module
-    msg "Deploying the Istio module: ${ISTIO_MODULE_NAME} into ${OCNE_CLUSTER_NAME}"
+    msg "将 Istio 模块 ${ISTIO_MODULE_NAME} 部署到 ${OCNE_CLUSTER_NAME}"
     echo_do olcnectl module install \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${ISTIO_MODULE_NAME}"
@@ -677,7 +685,7 @@ EOF"
 EOF"
       
     # Create the MetalLB module
-    msg "Creating the MetalLB module: ${METALLB_MODULE_NAME}"
+    msg "创建 MetalLB 模块：${METALLB_MODULE_NAME}"
     echo_do olcnectl module create \
       --environment-name "${OCNE_ENV_NAME}" \
       --module metallb \
@@ -685,17 +693,17 @@ EOF"
       --metallb-kubernetes-module "${OCNE_CLUSTER_NAME}" \
       --metallb-config /vagrant/metallb-config.yaml
 
-    msg "Removing MetalLB temporary configuration file"
+    msg "删除 MetalLB 临时配置文件"
     echo_do rm -f /vagrant/metallb-config.yaml
     
     # Validate the MetalLB module
-    msg "Validating the MetalLB module: ${METALLB_MODULE_NAME}"
+    msg "校验 MetalLB 模块：${METALLB_MODULE_NAME}"
     echo_do olcnectl module validate \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${METALLB_MODULE_NAME}"
 
     # Deploy the MetalLB module
-    msg "Deploying the MetalLB module: ${METALLB_MODULE_NAME} into ${OCNE_CLUSTER_NAME}"
+    msg "将 MetalLB 模块 ${METALLB_MODULE_NAME} 部署到 ${OCNE_CLUSTER_NAME}"
     echo_do olcnectl module install \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${METALLB_MODULE_NAME}"
@@ -706,7 +714,7 @@ EOF"
 
     # Create the Gluster module
     # using defaults url/user/secret-key: olcnectl module create --module gluster --help
-    msg "Creating the Gluster module (deprecated): ${GLUSTER_MODULE_NAME}"
+    msg "创建 Gluster 模块（已弃用）：${GLUSTER_MODULE_NAME}"
     HEKETI_CLI_SERVER="http://127.0.0.1:8080"
     if [[ ${CONTROL_PLANE} == 0 ]]; then
       # Standalone operator
@@ -720,13 +728,13 @@ EOF"
       --gluster-server-url "${HEKETI_CLI_SERVER}"
       
     # Validate the Gluster module
-    msg "Validating the Gluster module: ${GLUSTER_MODULE_NAME}"
+    msg "校验 Gluster 模块：${GLUSTER_MODULE_NAME}"
     echo_do olcnectl module validate \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${GLUSTER_MODULE_NAME}"
 
     # Deploy the Gluster module
-    msg "Deploying the Gluster module: ${GLUSTER_MODULE_NAME} into ${OCNE_CLUSTER_NAME}"
+    msg "将 Gluster 模块 ${GLUSTER_MODULE_NAME} 部署到 ${OCNE_CLUSTER_NAME}"
     echo_do olcnectl module install \
       --environment-name "${OCNE_ENV_NAME}" \
       --name "${GLUSTER_MODULE_NAME}"
@@ -743,10 +751,11 @@ EOF"
 # Returns:
 #   None
 #######################################
+# 中文：对已部署集群执行兼容性修复和运维优化。
 fixups() {
   local node
 
-  msg "Copying admin.conf for vagrant user on control plane node(s)"
+  msg "为控制平面节点上的 vagrant 用户复制 admin.conf"
   for node in ${CONTROL_PLANES//,/ }; do
     echo_do ssh "${node}" "\"\
       mkdir -p ~/.kube; \
@@ -762,7 +771,7 @@ fixups() {
 
   # Fix: /usr/libexec/crio/conmon doesn't exist
   #      conmon in @ol8_x86_64_appstream overrides @ol8_x86_64_olcne15
-  msg "Change conmon from /usr/libexec/crio/conmon to /usr/bin/conmon in /etc/crio/crio.conf"
+  msg "将 /etc/crio/crio.conf 中的 conmon 路径改为 /usr/bin/conmon"
   for node in ${CONTROL_PLANES//,/ } ${WORKERS//,/ }; do
     echo_do ssh "${node}" "\"\
       sudo sed 's|/usr/libexec/crio/conmon|/usr/bin/conmon|' -i /etc/crio/crio.conf \
@@ -770,7 +779,7 @@ fixups() {
     \""
   done  
 
-  msg "Starting kubectl proxy service on control plane nodes"
+  msg "在控制平面节点上启动 kubectl proxy 服务"
   for node in ${CONTROL_PLANES//,/ }; do
     # Expose the kubectl proxy to the host
     echo_do ssh "${node}" "\"\
@@ -782,7 +791,7 @@ fixups() {
   done
 
   # Fix: kubelet: "Unable to read config path" err="path does not exist, ignoring" path="/etc/kubernetes/manifests"
-  msg "Creating empty /etc/kubernetes/manifests directory on worker nodes"
+  msg "在 worker 节点上创建空的 /etc/kubernetes/manifests 目录"
   for node in ${WORKERS//,/ }; do
     echo_do ssh "${node}" "\"\
       [ -d /etc/kubernetes/manifests ] || sudo mkdir /etc/kubernetes/manifests
@@ -794,7 +803,7 @@ fixups() {
   #                    failed to get container info for "/system.slice/kubelet.service":
   #                    unknown container "/system.slice/kubelet.service"'
   #               containerName="/system.slice/kubelet.service"
-  msg "Creating /etc/systemd/system/kubelet.service.d/11-cgroups.conf on K8s nodes"
+  msg "在 K8s 节点上创建 /etc/systemd/system/kubelet.service.d/11-cgroups.conf"
   for node in ${CONTROL_PLANES//,/ } ${WORKERS//,/ }; do
     echo_do ssh "${node}" "\"\
       { cat <<-EOF | sudo tee /etc/systemd/system/kubelet.service.d/11-cgroups.conf
@@ -809,7 +818,7 @@ fixups() {
   done  
 
   # Fix: audit: type=1400 avc:  denied  { ioctl } for  comm="iptables" path="/sys/fs/cgroup" dev="tmpfs"
-  msg "Fix AVC Denial on iptables"
+  msg "修复 iptables 的 AVC 拒绝问题"
   for node in ${CONTROL_PLANES//,/ } ${WORKERS//,/ }; do
     echo_do ssh "${node}" "\"\
       echo '(allow iptables_t cgroup_t (dir (ioctl)))' > /tmp/local_iptables.cil \
@@ -820,7 +829,7 @@ fixups() {
   
   # Fix: Keepalived_vrrp: (VI_1) WARNING - equal priority advert received from remote host with our IP address.
   if [[ ${MULTI_CONTROL_PLANE} == 1 ]]; then
-    msg "Fix Keepalived: remove unicast_src_ip from unicast_peers"
+    msg "修复 Keepalived：从 unicast_peers 中移除 unicast_src_ip"
     for node in ${CONTROL_PLANES//,/ }; do
       echo_do ssh "${node}" "\"\
         sudo perl -i -ne 'print unless /^\s*$node\s*$/' /etc/keepalived/keepalived.conf \
@@ -831,7 +840,7 @@ fixups() {
 
   # Fix: heketi: systemd[1]: /usr/lib/systemd/system/glusterd.service:21: Unknown lvalue 'StartLimitIntervalSec' in section 'Service'
   if [[ ${DEPLOY_GLUSTER} == 1 ]]; then
-    msg "Removing StartLimitIntervalSec from /usr/lib/systemd/system/glusterd.service on Gluster nodes"
+    msg "从 Gluster 节点上的 /usr/lib/systemd/system/glusterd.service 中移除 StartLimitIntervalSec"
     for node in ${WORKERS//,/ }; do
       echo_do ssh "${node}" "\"\
         sudo sed -i '/^StartLimitIntervalSec=/d' /usr/lib/systemd/system/glusterd.service \
@@ -849,7 +858,7 @@ fixups() {
       if [[ ${NB_WORKERS} == "2" ]]; then
 	  volumetype="replicate:2" # 2 replicas
       fi      
-      msg "Patching the Kubernetes hyperconverged storageclass volumetype to $volumetype"
+      msg "将 Kubernetes hyperconverged storageclass 的 volumetype 修补为 $volumetype"
       node=${CONTROL_PLANES//,*/}
       # K8s Storage Classes are immutable. Cannot: kubectl patch storageclasses hyperconverged -p '{"Parameters":{"volumetype":"replicate:2"}}'
       echo_do ssh "${node}" "\"\
@@ -868,7 +877,7 @@ fixups() {
   # Fix: systemd: Started Session XX of user vagrant / session-XX.scope:
   #      systemd-logind: New session XX of user vagrant / Session XX logged out / Removed session XX
   # https://access.redhat.com/solutions/1564823
-  msg "Create discard filter to suppress user / session log entries in /var/log/messages"
+  msg "创建丢弃过滤器，抑制 /var/log/messages 中的用户和会话日志"
   echo 'if $programname == "systemd" and ($msg contains "Started Session" or $msg contains "scope: Succeeded") then stop' > /vagrant/ignore-systemd-session-slice.conf
   echo 'if $programname == "systemd-logind" and ($msg contains "New session" or $msg contains "logged out. Waiting for processes to exit" or $msg contains "Removed session") then stop' > /vagrant/ignore-systemd-logind-session.conf
   for node in ${nodes//,/ }; do
@@ -911,13 +920,13 @@ ready() {
 
   node=${CONTROL_PLANES//,*/}
 
-  msg "OCNE Modules deployed in this environment."
+  msg "该环境中的 OCNE 模块已部署完成。"
   olcnectl module instances --api-server "${api_server}:8091" --environment-name "${OCNE_ENV_NAME}"
 
-  msg "OCNE Pods deployed in this environment."
+  msg "该环境中的 OCNE Pods 已部署完成。"
   ssh vagrant@"${node}" kubectl get pods -A
 
-  msg "Your Oracle Cloud Native Environment is operational."
+  msg "Oracle Cloud Native Environment 已可正常运行。"
   ssh vagrant@"${node}" kubectl get nodes -o=wide
 }
 
@@ -931,7 +940,7 @@ main () {
   prerequisites
   passwordless_ssh
   if [[ ${OPERATOR} == 1 ]]; then
-    msg "Oracle Linux base pre-requisites complete,start provisioning nodes"
+    msg "Oracle Linux 基础前置条件已完成，开始预配各节点"
     quick_install_ocne
     deploy_modules
     fixups

@@ -17,6 +17,10 @@
 # No SSL setup is done, this host needs to be added as "insecure-registries"
 # on the client systems
 
+# 中文说明：
+# - 该文件定义私有镜像仓库虚拟机的网络、代理和预配流程。
+# - 预配分成 Docker 安装和 Registry 启动两个阶段，便于处理代理环境。
+
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
@@ -66,9 +70,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Unfortunately we can't use CIDR with no_proxy, so we have to enumerate and
   # 'blacklist' *all* IPs
   if Vagrant.has_plugin?("vagrant-proxyconf")
+    # 中文：继承宿主机代理配置，避免拉取软件包和镜像时失败。
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        puts "HTTP proxy: " + proxy
+        puts "HTTP 代理：" + proxy
         config.proxy.http = ensure_scheme(proxy)
         break
       end
@@ -76,7 +81,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        puts "HTTPS proxy: " + proxy
+        puts "HTTPS 代理：" + proxy
         config.proxy.https = ensure_scheme(proxy)
         break
       end
@@ -86,7 +91,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ["no_proxy", "NO_PROXY"].each do |proxy_var|
       if ENV[proxy_var]
         no_proxy = ENV[proxy_var]
-        puts "No proxy: " + no_proxy
+        puts "不使用代理：" + no_proxy
         no_proxy += ','
         break
       end
@@ -105,6 +110,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
 
+  # 中文：绑定私有网络和端口映射，供宿主机访问仓库服务。
   config.vm.hostname = NAME + ".vagrant.vm"
   config.vm.network "private_network", ip: REGISTRY_IP
   if Vagrant.has_plugin?("vagrant-hosts")

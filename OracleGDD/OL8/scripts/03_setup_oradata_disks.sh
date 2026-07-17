@@ -13,18 +13,23 @@
 #
 #│▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒│
 
+# 中文说明：
+# - 此脚本为 /scratch/oradata 初始化分片数据库使用的数据磁盘与卷组。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 echo "-----------------------------------------------------------------"
-echo -e "${INFO}`date +%F' '%T`: Setting-up '/scratch/oradata'"
+echo -e "${INFO}`date +%F' '%T`: 正在设置 '/scratch/oradata'"
 echo "-----------------------------------------------------------------"
 BOX_DISK_NUM=$1
 PROVIDER=$2
 
+# 根据 provider 推导磁盘设备名前缀，兼容 libvirt 与 VirtualBox。
 if [ "${PROVIDER}" == "libvirt" ]; then
   DEVICE="vd"
 elif [ "${PROVIDER}" == "virtualbox" ]; then
   DEVICE="sd"
 else
-  echo "Not supported provider: ${PROVIDER}"
+  echo "不支持的 provider：${PROVIDER}"
   exit 1
 fi
 
@@ -59,6 +64,7 @@ mkfs.xfs -f /dev/VolGroupOra/LogVolData
 # Set fstab
 UUID=`blkid -s UUID -o value /dev/VolGroupOra/LogVolData`
 mkdir -p /scratch/oradata
+# 将新卷写入 fstab，确保系统重启后自动挂载。
 cat >> /etc/fstab <<EOF
 UUID=${UUID}  /scratch/oradata    xfs    defaults 1 2
 EOF

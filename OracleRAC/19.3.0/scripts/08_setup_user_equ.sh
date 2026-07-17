@@ -13,12 +13,17 @@
 #     $3 = node1 hostname
 #     $4 = node2 hostname
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本安全地包装 Expect 调用，并通过环境变量传递口令。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_root
 require_var GI_HOME
 
 if [[ $# -ne 4 ]]; then
-  log_error "usage: $0 <user> <password> <node1> <node2>"
+  log_error "用法：$0 <user> <password> <node1> <node2>"
   exit 1
 fi
 
@@ -29,11 +34,11 @@ node2="$4"
 ssh_setup="${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh"
 
 if [[ ! -x "${ssh_setup}" ]]; then
-  log_error "sshUserSetup.sh not found or not executable: ${ssh_setup}"
+  log_error "未找到 sshUserSetup.sh，或该文件不可执行：${ssh_setup}"
   exit 1
 fi
 
-log_info "Configuring SSH equivalence for '${user}' between ${node1} and ${node2}"
+log_info "正在为 '${user}' between ${node1} and ${node2}"
 
 # Pass the password through the environment so it is not visible in 'ps'.
 RAC_USER_PASSWORD="${password}" \

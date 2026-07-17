@@ -6,15 +6,18 @@
 # 01_install_os_packages.sh
 #   Installs base packages and the Oracle preinstall bundle for RAC 26ai on OL9.
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于安装 FPP/RAC 所需的基础软件和 Oracle 预安装包。
+
 . /vagrant/scripts/_common.sh
 require_root
 
-log_section "Installing base packages"
+log_section "正在安装基础软件包"
 yum install -y expect tree unzip zip openssl dnsmasq parted
 
-log_section "Installing oracle-ai-database-preinstall-26ai"
+log_section "正在安装 oracle-ai-database-preinstall-26ai"
 yum install -y oracle-ai-database-preinstall-26ai
 
-log_section "Disabling firewalld"
+log_section "正在禁用 firewalld"
 systemctl stop    firewalld 2>/dev/null || true
 systemctl disable firewalld 2>/dev/null || true

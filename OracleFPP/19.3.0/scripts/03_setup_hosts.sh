@@ -9,6 +9,9 @@
 #   127.0.0.1 so CVU / gethostbyname see SCAN resolve to 3 addresses (required
 #   to satisfy PRVG-11372 on Grid Infrastructure post-checks).
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于配置主机名解析与 dnsmasq，确保 SCAN 名称按预期解析。
+
 . /vagrant/scripts/_common.sh
 require_root
 for v in NODE1_PUBLIC_IP NODE1_PRIV_IP NODE1_VIP_IP \
@@ -20,7 +23,8 @@ for v in NODE1_PUBLIC_IP NODE1_PRIV_IP NODE1_VIP_IP \
   require_var "${v}"
 done
 
-log_section "Writing /etc/hosts"
+# 中文：将公网、私网与 VIP 统一写入 hosts，便于集群解析。
+log_section "正在写入 /etc/hosts"
 # SCAN is intentionally NOT written to /etc/hosts — dnsmasq serves it with
 # all three A records so CVU sees a SCAN→3 IP mapping.
 {
@@ -46,7 +50,7 @@ EOF
 
 } > /etc/hosts
 
-log_section "Configuring dnsmasq for SCAN round-robin"
+log_section "正在为 SCAN 轮询解析配置 dnsmasq"
 install -d -m 0755 /etc/dnsmasq.d
 
 # host-record produces both forward (A) and reverse (PTR) records. Listing
@@ -71,11 +75,11 @@ host-record=${FQ_SCAN_NAME},${SCAN_NAME},${SCAN_IP2}
 host-record=${FQ_SCAN_NAME},${SCAN_NAME},${SCAN_IP3}
 EOF
 
-log_section "Enabling dnsmasq"
+log_section "正在启用 dnsmasq"
 systemctl enable dnsmasq
 systemctl restart dnsmasq
 
-log_section "Writing /etc/resolv.conf"
+log_section "正在写入 /etc/resolv.conf"
 # Prevent NetworkManager/DHCP from stomping the file on the next lease.
 # Clearing the immutable bit is a no-op if it was never set; re-setting is
 # idempotent across re-provisions.
@@ -86,13 +90,13 @@ nameserver 127.0.0.1
 EOF
 chattr +i /etc/resolv.conf 2>/dev/null || true
 
-log_section "Verifying SCAN resolution"
+log_section "正在校验 SCAN 解析结果"
 # Fail fast if dnsmasq isn't returning 3 A records — it's the whole point
 # of this script, and CVU will complain downstream if it's wrong.
 scan_count=$(getent ahostsv4 "${FQ_SCAN_NAME}" | awk '{print $1}' | sort -u | wc -l)
 if (( scan_count != 3 )); then
-  log_error "expected SCAN ${FQ_SCAN_NAME} to resolve to 3 IPs, got ${scan_count}"
+  log_error "期望 SCAN ${FQ_SCAN_NAME} 解析出 3 个 IP，实际为 ${scan_count}"
   getent ahostsv4 "${FQ_SCAN_NAME}" || true
   exit 1
 fi
-log_success "SCAN ${FQ_SCAN_NAME} resolves to 3 IPs via dnsmasq"
+log_success "SCAN ${FQ_SCAN_NAME} 已通过 dnsmasq 解析为 3 个 IP"

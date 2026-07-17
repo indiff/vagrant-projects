@@ -10,10 +10,15 @@
 #
 #   Runs as the oracle user.
 #------------------------------------------------------------------------------
+
+# 中文说明：
+# - 校验 Oracle 数据库安装 zip 的 cksum 后再执行解压和静默安装。
+# - 允许 runInstaller 以带警告的退出码 6 结束，避免误判失败。
+
 . /vagrant/scripts/_common.sh
 
 if [[ "$(id -un)" != "oracle" ]]; then
-  log_error "this script must run as the oracle user"
+  log_error "该脚本必须以 oracle 用户运行"
   exit 1
 fi
 
@@ -23,15 +28,16 @@ require_var DB_SOFTWARE
 require_var ORA_INVENTORY
 require_var ORA_LANGUAGES
 
+# 中文：先核对安装介质和校验清单，避免用错版本或损坏的 zip。
 zip_path="/vagrant/ORCL_software/${DB_SOFTWARE}"
 checksum_path="/vagrant/db_installer.cksum"
 if [[ ! -f "${zip_path}" ]]; then
-  log_error "installer zip not found at ${zip_path}"
+  log_error "未在 ${zip_path} 找到安装 zip"
   exit 1
 fi
 
 if [[ ! -f "${checksum_path}" ]]; then
-  log_error "installer checksum file not found at ${checksum_path}"
+  log_error "未在 ${checksum_path} 找到安装校验文件"
   exit 1
 fi
 
@@ -52,29 +58,29 @@ while IFS= read -r line; do
 done < "${checksum_path}"
 
 if [[ -z "${expected_crc}" || -z "${expected_size}" ]]; then
-  log_error "no checksum entry for ${DB_SOFTWARE} found in ${checksum_path}"
+  log_error "在 ${checksum_path} 中未找到 ${DB_SOFTWARE} 的校验条目"
   exit 1
 fi
 
 if ! [[ "${expected_crc}" =~ ^[0-9]+$ && "${expected_size}" =~ ^[0-9]+$ ]]; then
-  log_error "invalid checksum entry for ${DB_SOFTWARE} in ${checksum_path}"
+  log_error "${checksum_path} 中 ${DB_SOFTWARE} 的校验条目无效"
   exit 1
 fi
 
-log_section "Verifying ${DB_SOFTWARE} against ${checksum_path}"
+log_section "使用 ${checksum_path} 校验 ${DB_SOFTWARE}"
 IFS=' ' read -r actual_crc actual_size _ < <(cksum "${zip_path}")
 if [[ "${actual_crc}" != "${expected_crc}" || "${actual_size}" != "${expected_size}" ]]; then
-  log_error "checksum verification failed for ${zip_path} (expected crc=${expected_crc} size=${expected_size} from ${expected_name}, got crc=${actual_crc} size=${actual_size})"
+  log_error "${zip_path} 校验失败（期望来自 ${expected_name} 的 crc=${expected_crc} size=${expected_size}，实际为 crc=${actual_crc} size=${actual_size}）"
   exit 1
 fi
-log_success "Installer checksum verified"
+log_success "安装介质校验通过"
 
-log_section "Extracting ${DB_SOFTWARE} into ${DB_HOME}"
+log_section "将 ${DB_SOFTWARE} 解压到 ${DB_HOME}"
 mkdir -p "${DB_HOME}"
 cd "${DB_HOME}"
 unzip -oq "${zip_path}"
 
-log_section "Running runInstaller (software-only, silent)"
+log_section "运行 runInstaller（仅安装软件，静默模式）"
 
 # runInstaller exit codes (see Oracle docs):
 #   0  success
@@ -107,8 +113,9 @@ else
   rc=$?
 fi
 
+# 中文：显式处理 Oracle Installer 的特殊退出码 6。
 case "${rc}" in
-  0) log_success "runInstaller completed successfully" ;;
-  6) log_info    "runInstaller completed with warnings (exit=6) — expected when -ignorePrereq is set" ;;
-  *) log_error   "runInstaller failed with exit=${rc}"; exit "${rc}" ;;
+  0) log_success "runInstaller 已成功完成" ;;
+  6) log_info    "runInstaller 已完成但带有警告（exit=6），这是设置 -ignorePrereq 时的预期行为" ;;
+  *) log_error   "runInstaller 失败，退出码=${rc}"; exit "${rc}" ;;
 esac
