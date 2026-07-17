@@ -305,8 +305,9 @@ end
 # --------------------------- VM definition -----------------------------------
 # 根据 provider 和网络配置动态生成虚拟机定义。
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box              = BOX_NAME
-  config.vm.box_url          = BOX_URL
+  #config.vm.box              = BOX_NAME
+  #config.vm.box_url          = BOX_URL
+  config.vm.box = "ol7u9"
   config.vm.box_check_update = false
   config.vm.box_version      = BOX_MIN_VERSION if var_provider_name == 'virtualbox'
 
