@@ -7,8 +7,14 @@
 #   Writes /etc/hosts with public + private addresses for both nodes, and
 #   a minimal /etc/resolv.conf. Re-runnable.
 #------------------------------------------------------------------------------
+
+# 中文说明：
+# - 写入主机与私有互联地址，确保主备库都能解析对端名称。
+# - 额外生成最小化 resolv.conf，统一域搜索后缀。
+
 . /vagrant/scripts/_common.sh
 require_root
+# 中文：先确认关键网络变量齐全，再覆盖 hosts 与 resolv.conf。
 for v in NODE1_PUBLIC_IP NODE2_PUBLIC_IP NODE1_PRIV_IP NODE2_PRIV_IP \
          NODE1_HOSTNAME NODE2_HOSTNAME NODE1_FQ_HOSTNAME NODE2_FQ_HOSTNAME \
          NODE1_PRIVNAME NODE2_PRIVNAME NODE1_FQ_PRIVNAME NODE2_FQ_PRIVNAME \
@@ -16,7 +22,7 @@ for v in NODE1_PUBLIC_IP NODE2_PUBLIC_IP NODE1_PRIV_IP NODE2_PRIV_IP \
   require_var "${v}"
 done
 
-log_section "Writing /etc/hosts"
+log_section "写入 /etc/hosts"
 cat > /etc/hosts <<EOF
 127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
@@ -30,7 +36,7 @@ ${NODE1_PRIV_IP}    ${NODE1_FQ_PRIVNAME}  ${NODE1_PRIVNAME}
 ${NODE2_PRIV_IP}    ${NODE2_FQ_PRIVNAME}  ${NODE2_PRIVNAME}
 EOF
 
-log_section "Writing /etc/resolv.conf"
+log_section "写入 /etc/resolv.conf"
 cat > /etc/resolv.conf <<EOF
 search ${DOMAIN_NAME}
 EOF

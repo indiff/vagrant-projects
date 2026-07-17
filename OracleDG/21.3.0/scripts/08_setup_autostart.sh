@@ -6,14 +6,20 @@
 # 08_setup_autostart.sh
 #   Install start/stop scripts + systemd unit for the database.
 #------------------------------------------------------------------------------
+
+# 中文说明：
+# - 创建数据库启停脚本并注册 systemd 单元。
+# - 同时写入 /etc/oratab，确保 dbstart/dbshut 能识别当前实例。
+
 . /vagrant/scripts/_common.sh
 require_root
 require_var DB_NAME
 require_var DB_HOME
 
-log_section "Installing oracle dbstart/dbshut helper scripts"
+log_section "安装 oracle dbstart/dbshut 辅助脚本"
 install -d -o oracle -g oinstall -m 0755 /home/oracle/scripts
 
+# 中文：由 systemd 调用统一启停脚本，避免直接写复杂命令到 unit。
 cat > /home/oracle/scripts/start_all.sh <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -37,7 +43,7 @@ EOF
 chown oracle:oinstall /home/oracle/scripts/start_all.sh /home/oracle/scripts/stop_all.sh
 chmod 0755             /home/oracle/scripts/start_all.sh /home/oracle/scripts/stop_all.sh
 
-log_section "Writing /etc/systemd/system/dbora.service"
+log_section "写入 /etc/systemd/system/dbora.service"
 cat > /etc/systemd/system/dbora.service <<EOF
 [Unit]
 Description=Oracle Database Service
@@ -61,13 +67,13 @@ WantedBy=multi-user.target
 EOF
 chmod 0644 /etc/systemd/system/dbora.service
 
-log_section "Writing /etc/oratab"
+log_section "写入 /etc/oratab"
 cat > /etc/oratab <<EOF
 ${DB_NAME}:${DB_HOME}:Y
 EOF
 chown oracle:oinstall /etc/oratab
 chmod 0664             /etc/oratab
 
-log_section "Enabling dbora.service"
+log_section "启用 dbora.service"
 systemctl daemon-reload
 systemctl enable dbora.service >/dev/null

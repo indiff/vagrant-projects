@@ -19,6 +19,10 @@
 # vi: set ft=ruby :
 
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+# 中文说明：
+# - 此 Vagrantfile 用于创建 Oracle Linux 演示虚拟机，并按需启用扩展预配脚本。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 VAGRANTFILE_API_VERSION = "2"
 
 # Box metadata location and box name
@@ -31,13 +35,15 @@ NAME = "ol8-vagrant"
 # UI object for printing information
 ui = Vagrant::UI::Prefixed.new(Vagrant::UI::Colored.new, "vagrant")
 
+# 根据 provider 和网络配置动态生成虚拟机定义。
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = BOX_NAME
   config.vm.box_url = "#{BOX_URL}/#{BOX_NAME}.json"
   config.vm.define NAME
 
-  if Vagrant.has_plugin?("vagrant-env")
-    ui.info "Loading environment from .env files"
+    # 可选地从 .env 读取参数，方便本地覆盖默认值。
+if Vagrant.has_plugin?("vagrant-env")
+    ui.info "正在从 .env 文件加载环境配置"
     config.env.load(".env.local", ".env")
   end
 
@@ -51,12 +57,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # add proxy configuration from host env - optional
-  if Vagrant.has_plugin?("vagrant-proxyconf")
-    ui.info "Getting Proxy Configuration from Host..."
+    # 仅在宿主机已定义代理时，才把代理配置同步到虚拟机。
+if Vagrant.has_plugin?("vagrant-proxyconf")
+    ui.info "正在从宿主机获取代理配置..."
     has_proxy = false
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTP proxy: " + proxy
+        ui.info "HTTP 代理：" + proxy
         config.proxy.http = proxy
         has_proxy = true
         break
@@ -65,7 +72,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTPS proxy: " + proxy
+        ui.info "HTTPS 代理：" + proxy
         config.proxy.https = proxy
         has_proxy = true
         break
@@ -78,7 +85,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ["no_proxy", "NO_PROXY"].each do |proxy_var|
         if ENV[proxy_var]
           no_proxy = ENV[proxy_var]
-          ui.info "No proxy: " + no_proxy
+          ui.info "不使用代理：" + no_proxy
           no_proxy += ","
           break
         end
@@ -88,7 +95,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   else
     ["http_proxy", "HTTP_PROXY", "https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if ENV[proxy_var]
-        ui.warn 'To enable proxies in your VM, install the vagrant-proxyconf plugin'
+        ui.warn '如需在虚拟机中启用代理，请安装 vagrant-proxyconf 插件'
         break
       end
     end
@@ -101,24 +108,26 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # config.vm.network "forwarded_port", guest: 22, host: 2220
 
   # Provision everything on the first run
-  config.vm.provision "shell", path: "scripts/install.sh"
+    # 基础系统准备完成后，再串联功能扩展脚本。
+config.vm.provision "shell", path: "scripts/install.sh"
   if Vagrant.has_plugin?("vagrant-reload")
-    config.vm.provision "shell", inline: "echo 'Reloading your VM to activate the latest kernel'"
+    config.vm.provision "shell", inline: "echo '正在重新加载虚拟机以启用最新内核'"
     config.vm.provision :reload
   else
-    config.vm.provision "shell", inline: "echo 'You need to reload your VM to activate the latest kernel'"
+    config.vm.provision "shell", inline: "echo '你需要重新加载虚拟机以启用最新内核'"
   end
 
   # Extend provisioning
-  if ENV['EXTEND']
+    # EXTEND 允许按名称附加额外的预配脚本。
+if ENV['EXTEND']
     ENV['EXTEND'].sub(/^[ ,]+/,'').split(/[ ,]+/).each do |extension|
       found = false
       ["scripts", "scripts.local"].each do |script_dir|
         script = "#{script_dir}/#{extension}.sh"
         if File.file?(script)
-          ui.info "Extension #{extension} using #{script} enabled"
+          ui.info "已启用扩展 #{extension}，使用脚本 #{script}"
           found = true
-          config.vm.provision "shell", inline: "echo 'Running provisioner for extension #{extension}'"
+          config.vm.provision "shell", inline: "echo '正在运行扩展 #{extension} 的预配脚本'"
           config.vm.provision "shell",
             path: script,
             env: ENV.select { |key, value| key.to_s.match(/^#{extension.upcase.gsub('-','_')}_/) }
@@ -126,7 +135,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
       end
       unless found
-        ui.error "Extension #{extension} does not exist -- ignored"
+        ui.error "扩展 #{extension} 不存在，已忽略"
       end
     end
   end
@@ -135,11 +144,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   if ENV['EXPOSE']
     ENV['EXPOSE'].sub(/^[ ,]+/,'').split(/[ ,]+/).each do |expose|
       host_port, guest_port = expose.split(':')
-      ui.info "Guest port #{guest_port} exposed to port #{host_port} on host"
+      ui.info "来宾端口 #{guest_port} 已映射到宿主机端口 #{host_port}"
       config.vm.network "forwarded_port", guest: guest_port, host: host_port
     end
   end
 
-  config.vm.provision "shell", inline: "echo 'INSTALLER: Installation complete, Oracle Linux 8 ready to use!'"
+  config.vm.provision "shell", inline: "echo '安装程序：安装完成，Oracle Linux 8 已可使用！'"
 
 end

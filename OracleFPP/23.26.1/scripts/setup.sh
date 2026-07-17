@@ -8,6 +8,9 @@
 #   Invoked by Vagrantfile on both nodes.
 #------------------------------------------------------------------------------
 
+# 中文说明：
+# 负责串联 FPP 预配全流程，并把运行时环境统一写入 setup.env。
+
 set -o errexit
 set -o errtrace
 set -o nounset
@@ -24,7 +27,7 @@ for v in PROVIDER BOX_DISK_NUM SYSTEM_TIMEZONE PREFIX_NAME \
          ORA_LANGUAGES ASM_DISK_NUM \
          ROOT_PASSWORD GRID_PASSWORD ORACLE_PASSWORD SYS_PASSWORD; do
   if [[ -z "${!v:-}" ]]; then
-    echo "ERROR: required environment variable '${v}' is missing" >&2
+    echo "错误：缺少必需的环境变量 '${v}'" >&2
     exit 1
   fi
 done
@@ -61,6 +64,7 @@ write_env_export() {
 # Mode 0640, owned by root:oinstall (written before oinstall exists, so
 # the final chown/chmod runs after 05_setup_users.sh).
 # ---------------------------------------------------------------------
+# 中文：先生成所有脚本共享的运行时环境文件，减少跨脚本参数传递。
 install -d -m 0700 "${SETUP_ENV_DIR}"
 ( umask 077
   {
@@ -127,9 +131,9 @@ install -d -m 0700 "${SETUP_ENV_DIR}"
     write_env_export SYS_PASSWORD      "${SYS_PASSWORD}"
     printf '\n'
 
-    write_env_export INFO '\033[0;34mINFO: \033[0m'
-    write_env_export ERROR '\033[1;31mERROR: \033[0m'
-    write_env_export SUCCESS '\033[1;32mSUCCESS: \033[0m'
+    write_env_export INFO '\033[0;34m提示：\033[0m'
+    write_env_export ERROR '\033[1;31m错误：\033[0m'
+    write_env_export SUCCESS '\033[1;32m成功：\033[0m'
   } > "${SETUP_ENV_FILE}"
 )
 chmod 0600 "${SETUP_ENV_FILE}"
@@ -143,44 +147,44 @@ chmod 0600 "${SETUP_ENV_FILE}"
 # loses the shared-folder mount; re-mount defensively.
 # ---------------------------------------------------------------------
 if [[ "${PROVIDER}" == "virtualbox" ]] && ! mountpoint -q /vagrant; then
-  log_info "Remounting /vagrant (vboxsf)"
+  log_info "正在重新挂载 /vagrant（vboxsf）"
   mount -t vboxsf vagrant /vagrant
 fi
 
-log_section "Fixing locale warnings"
+log_section "正在修复区域设置告警"
 for line in 'LANG=en_US.utf-8' 'LC_ALL=en_US.utf-8'; do
   grep -qxF "${line}" /etc/environment || echo "${line}" >> /etc/environment
 done
 
-log_section "Setting system time zone to ${SYSTEM_TIMEZONE}"
+log_section "正在将系统时区设置为 ${SYSTEM_TIMEZONE}"
 timedatectl set-timezone "${SYSTEM_TIMEZONE}"
 
 # Oracle's root SSH equivalence bootstrap is password-based; keep it enabled
 # until node1 has finished creating root keys for the cluster.
-log_section "Preparing sshd for bootstrap"
+log_section "正在为引导阶段准备 sshd"
 bash "${SCRIPT_DIR}/00_configure_root_ssh.sh" yes
 
-log_section "Installing OS packages"
+log_section "正在安装操作系统软件包"
 bash "${SCRIPT_DIR}/01_install_os_packages.sh"
 
-log_section "Setting up /u01 disk"
+log_section "正在配置 /u01 磁盘"
 bash "${SCRIPT_DIR}/02_setup_u01.sh" "${BOX_DISK_NUM}" "${PROVIDER}"
 
-log_section "Setting up /etc/hosts and /etc/resolv.conf"
+log_section "正在配置 /etc/hosts 和 /etc/resolv.conf"
 bash "${SCRIPT_DIR}/03_setup_hosts.sh"
 
-log_section "Setting up chronyd"
+log_section "正在处理 chronyd 配置"
 bash "${SCRIPT_DIR}/04_setup_chrony.sh"
 
-log_section "Setting up OS users and groups"
+log_section "正在配置操作系统用户和组"
 bash "${SCRIPT_DIR}/05_setup_users.sh"
 
-log_section "Granting oinstall group access to runtime provisioning env"
+log_section "正在为 oinstall 组授予运行时预配环境访问权限"
 chgrp oinstall "${SETUP_ENV_DIR}" "${SETUP_ENV_FILE}"
 chmod 0750     "${SETUP_ENV_DIR}"
 chmod 0640     "${SETUP_ENV_FILE}"
 
-log_section "Setting root, grid and oracle account passwords"
+log_section "正在设置 root、grid 和 oracle 账户密码"
 # chpasswd reads from stdin — passwords never hit `ps`.
 printf 'root:%s\n'   "${ROOT_PASSWORD}"   | chpasswd
 printf 'grid:%s\n'   "${GRID_PASSWORD}"   | chpasswd
@@ -191,70 +195,71 @@ is_node1="false"
 [[ "${current_host}" == "${VM1_NAME}" ]] && is_node1="true"
 
 # -------------------- node1 only -------
+# 中文：仅在主节点执行 GI、RDBMS 与 FPP 的集中安装步骤。
 if [[ "${is_node1}" == "true" ]]; then
 
-  log_section "Setting up shared ASM disks"
+  log_section "正在配置共享 ASM 磁盘"
   SHARED_DISK_OFFSET=$((BOX_DISK_NUM + 1))
   bash "${SCRIPT_DIR}/06_setup_shared_disks.sh" "${SHARED_DISK_OFFSET}" "${PROVIDER}"
 
-  log_section "Preparing Grid Infrastructure installer media"
+  log_section "正在准备 Grid Infrastructure 安装介质"
   bash "${SCRIPT_DIR}/07_extract_gi.sh"
 
-  log_section "Setting up SSH equivalence for grid and oracle"
+  log_section "正在为 grid 和 oracle 配置 SSH 互信"
   bash "${SCRIPT_DIR}/08_setup_user_equ.sh" grid   "${GRID_PASSWORD}"   "${VM1_NAME}" "${VM1_NAME}"
   bash "${SCRIPT_DIR}/08_setup_user_equ.sh" oracle "${ORACLE_PASSWORD}" "${VM1_NAME}" "${VM1_NAME}"
 
-  log_section "Installing cvuqdisk"
+  log_section "正在安装 cvuqdisk"
   yum install -y "${GI_HOME}"/cv/rpm/cvuqdisk*.rpm
 
-  log_section "Installing Grid Infrastructure (silent, software + config)"
+  log_section "正在安装 Grid Infrastructure（静默模式，含软件与配置）"
   su - grid -c "bash ${SCRIPT_DIR}/10_gi_installation.sh"
 
-  log_section "Setting up SSH equivalence for root (required by root.sh)"
+  log_section "正在为 root 配置 SSH 互信（root.sh 需要）"
   bash "${SCRIPT_DIR}/08_setup_user_equ.sh" root "${ROOT_PASSWORD}" "${VM1_NAME}" "${VM1_NAME}"
 
-  log_section "Running GI root scripts"
+  log_section "正在运行 GI root 脚本"
   bash "${SCRIPT_DIR}/11_gi_root.sh"
 
-  log_section "Executing GI config tools"
+  log_section "正在执行 GI 配置工具"
   su - grid -c "bash ${SCRIPT_DIR}/12_gi_config.sh"
 
-  log_section "Preparing RDBMS installer media"
+  log_section "正在准备 RDBMS 安装介质"
   bash "${SCRIPT_DIR}/13_extract_db.sh"
 
-  log_section "Installing RDBMS software"
+  log_section "正在安装 RDBMS 软件"
   su - grid -c "bash ${SCRIPT_DIR}/14_db_software_installation.sh"
 
   bash "${DB_HOME}/root.sh"
 
-  log_section "Executing GIMR setup"
+  log_section "正在执行 GIMR 配置"
   su - grid -c "bash ${SCRIPT_DIR}/15_setup_gimr.sh"
 
-  log_section "Executing FPP setup"
+  log_section "正在执行 FPP 配置"
   bash "${SCRIPT_DIR}/16_Setup_FPP.sh"
 fi
 
 # Run user-defined post-setup scripts on every node.
-log_section "Running user-defined post-setup scripts (userscripts/)"
+log_section "正在运行用户自定义的安装后脚本（userscripts/）"
 shopt -s nullglob
 for f in /vagrant/userscripts/*; do
   case "${f,,}" in
     *.sh)
-      log_info "running ${f}"
+      log_info "正在运行 ${f}"
       # shellcheck disable=SC1090
       . "${f}"
-      log_info "done ${f}"
+      log_info "已完成 ${f}"
       ;;
     *.sql)
-      log_info "running ${f} as SYS"
+      log_info "正在以 SYS 身份运行 ${f}"
       su -l oracle -c "echo exit | sqlplus -s / as sysdba @\"${f}\""
-      log_info "done ${f}"
+      log_info "已完成 ${f}"
       ;;
     /vagrant/userscripts/put_custom_scripts_here.txt)
       :
       ;;
     *)
-      log_info "ignoring ${f}"
+      log_info "已忽略 ${f}"
       ;;
   esac
 done
@@ -263,9 +268,9 @@ done
 # Strip DB passwords from the persistent setup.env now that bootstrap is done.
 # Keeping them on disk would leave cleartext SYS/PDB credentials readable by
 # any member of oinstall (grid, oracle) for the life of the VM.
-log_section "Scrubbing DB passwords from ${SETUP_ENV_FILE}"
+log_section "正在从 ${SETUP_ENV_FILE} 清除数据库密码"
 if [[ -f "${SETUP_ENV_FILE}" ]]; then
   sed -ri '/^export (SYS_PASSWORD)=/d' "${SETUP_ENV_FILE}"
 fi
 
-log_success "Provisioning complete on ${current_host}"
+log_success "${current_host} 上的预配已完成"

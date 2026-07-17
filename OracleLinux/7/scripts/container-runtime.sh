@@ -10,11 +10,16 @@
 #
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
-echo 'Installing and configuring Oracle Container Runtime for Docker'
+# 中文说明：
+# - 此脚本安装 Oracle Container Runtime for Docker，并按磁盘类型配置存储驱动。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
+echo '正在安装并配置 Oracle Container Runtime for Docker'
 
 # install Oracle Container Runtime for Docker
 yum -y install docker-engine
 
+# 如果存在额外磁盘，则优先把它配置为 Docker 存储后端。
 if [[ -b /dev/sdb || -b /dev/vdb ]]; then
     # Format spare device as Btrfs
     # Configure Btrfs storage driver
@@ -51,10 +56,10 @@ usermod -a -G docker vagrant
 # Relax /etc/docker permissions
 chmod 0770 /etc/docker
 
-echo 'Oracle Container Runtime for Docker is ready to use'
-echo 'To get started, on your host, run:'
+echo 'Oracle Container Runtime for Docker 已可使用'
+echo '要开始使用，请在宿主机上运行：'
 echo '  vagrant ssh'
 echo
-echo 'Then, within the guest (for example):'
+echo '然后在来宾系统中运行（例如）：'
 echo '  docker run -it --rm oraclelinux:8-slim'
 echo

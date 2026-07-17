@@ -8,10 +8,15 @@
 #   logging + flashback, adds standby redo logs, starts DG broker.
 #   Runs as the oracle user.
 #------------------------------------------------------------------------------
+
+# 中文说明：
+# - 使用 dbca 创建主库，并配置归档、闪回和备用重做日志。
+# - 最后启用 Data Guard broker，为备库复制做好准备。
+
 . /vagrant/scripts/_common.sh
 
 if [[ "$(id -un)" != "oracle" ]]; then
-  log_error "this script must run as the oracle user"
+  log_error "该脚本必须以 oracle 用户运行"
   exit 1
 fi
 
@@ -26,7 +31,8 @@ sqlplus_sysdba() {
   "${DB_HOME}/bin/sqlplus" -s -L / as sysdba
 }
 
-log_section "Creating primary database with dbca"
+log_section "使用 dbca 创建主库"
+# 中文：根据是否启用 CDB/PDB 组装 dbca 参数。
 dbca_args=(
   -silent -createDatabase
   -templateName General_Purpose.dbc
@@ -61,7 +67,7 @@ fi
 
 "${DB_HOME}/bin/dbca" "${dbca_args[@]}"
 
-log_section "Configuring db_create_file_dest + local_listener + FRA"
+log_section "配置 db_create_file_dest、local_listener 和 FRA"
 sqlplus_sysdba <<EOF
 WHENEVER SQLERROR EXIT FAILURE
 ALTER SYSTEM SET db_create_file_dest='/u02/oradata' SCOPE=BOTH;
@@ -72,7 +78,7 @@ ALTER SYSTEM SET db_recovery_file_dest='/u01/app/oracle' SCOPE=BOTH;
 exit;
 EOF
 
-log_section "Enabling archivelog, force logging, standby redo, flashback"
+log_section "启用 archivelog、force logging、standby redo 和 flashback"
 sqlplus_sysdba <<EOF
 WHENEVER SQLERROR EXIT FAILURE
 SHUTDOWN IMMEDIATE;
@@ -94,11 +100,11 @@ ALTER SYSTEM SET STANDBY_FILE_MANAGEMENT=AUTO SCOPE=BOTH;
 exit;
 EOF
 
-log_section "Enabling Data Guard broker"
+log_section "启用 Data Guard broker"
 sqlplus_sysdba <<'EOF'
 WHENEVER SQLERROR EXIT FAILURE
 ALTER SYSTEM SET dg_broker_start=TRUE SCOPE=BOTH;
 exit;
 EOF
 
-log_success "Primary DB setup complete"
+log_success "主库数据库配置完成"

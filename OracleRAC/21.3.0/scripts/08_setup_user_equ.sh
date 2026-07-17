@@ -13,12 +13,17 @@
 #     $3 = node1 hostname
 #     $4 = node2 hostname
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本安全地包装 Expect 调用，并通过环境变量传递口令。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_root
 require_var GI_HOME
 
 if [[ $# -ne 4 ]]; then
-  log_error "usage: $0 <user> <password> <node1> <node2>"
+  log_error "用法：$0 <user> <password> <node1> <node2>"
   exit 1
 fi
 
@@ -30,7 +35,7 @@ ssh_setup="${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh"
 expect_driver='/vagrant/scripts/08_setup_user_equ.expect'
 
 if [[ ! -x "${ssh_setup}" ]]; then
-  log_error "sshUserSetup.sh not found or not executable: ${ssh_setup}"
+  log_error "未找到 sshUserSetup.sh，或该文件不可执行：${ssh_setup}"
   exit 1
 fi
 if [[ ! -f "${expect_driver}" ]]; then
@@ -42,7 +47,7 @@ if ! getent passwd "${user}" >/dev/null; then
   exit 1
 fi
 
-log_info "Configuring SSH equivalence for '${user}' between ${node1} and ${node2}"
+log_info "正在为 '${user}' between ${node1} and ${node2}"
 
 # Run Oracle's helper inside the target user's login shell so ~/.ssh resolves
 # to the correct home directory. Preserve only the password env var to keep it

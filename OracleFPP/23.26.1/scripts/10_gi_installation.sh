@@ -8,6 +8,9 @@
 #   configuration up to the point where root scripts must be executed.
 #   Runs as the grid user.
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于静默安装 Grid Infrastructure 软件，并准备后续 root 阶段。
+
 . /vagrant/scripts/_common.sh
 require_user grid
 for v in GI_HOME GRID_BASE ORA_INVENTORY ORA_LANGUAGES \
@@ -21,19 +24,20 @@ done
 net_device1="$(ip -o link show | awk -F': ' 'NR==3 {print $2}' | awk '{print $1}' | sed 's/@.*$//')"
 net_device2="$(ip -o link show | awk -F': ' 'NR==4 {print $2}' | awk '{print $1}' | sed 's/@.*$//')"
 if [[ -z "${net_device1}" || -z "${net_device2}" ]]; then
-  log_error "unable to detect NIC devices (got: '${net_device1}' / '${net_device2}')"
+  log_error "无法检测网卡设备（实际为：'${net_device1}' / '${net_device2}'）"
   exit 1
 fi
 
 # Data disks (P1 partitions) for the initial DATA diskgroup.
 data_disks="$(ls -dm $(asm_disk_glob p1) | tr -d ' \n')"
 if [[ -z "${data_disks}" ]]; then
-  log_error "no DATA disks found using glob '$(asm_disk_glob p1)'"
+  log_error "使用 glob '$(asm_disk_glob p1)' 未找到 DATA 磁盘"
   exit 1
 fi
 discovery_string="$(asm_disk_glob p1)"
 
 # --- Assemble rsp parameters ------------------------------------------------
+# 中文：集中组装静默安装参数，便于复用与审计。
 rsp_args=(
   INVENTORY_LOCATION="${ORA_INVENTORY}"
   SELECTED_LANGUAGES="${ORA_LANGUAGES}"
@@ -73,7 +77,7 @@ rsp_args=(
 )
 
 
-log_section "Running gridSetup.sh (silent, -ignorePrereq)"
+log_section "正在运行 gridSetup.sh（静默模式，-ignorePrereq）"
 
 # gridSetup.sh exit codes:
 #   0  success
@@ -88,7 +92,7 @@ else
 fi
 
 case "${rc}" in
-  0) log_success "gridSetup.sh completed successfully" ;;
-  6) log_info    "gridSetup.sh completed with warnings (exit=6) — expected when -ignorePrereq is set" ;;
-  *) log_error   "gridSetup.sh failed with exit=${rc}"; exit "${rc}" ;;
+  0) log_success "gridSetup.sh 已成功完成" ;;
+  6) log_info    "gridSetup.sh 已完成但带有告警（exit=6）；设置 -ignorePrereq 时属预期情况" ;;
+  *) log_error   "gridSetup.sh 执行失败，exit=${rc}"; exit "${rc}" ;;
 esac

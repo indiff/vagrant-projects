@@ -7,7 +7,12 @@
 #   Ensure the +DATA diskgroup is mounted and create +RECO using the P2
 #   partitions of each shared disk. Runs as the grid user.
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本使用共享磁盘的 P2 分区创建 +RECO 磁盘组。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_user grid
 for v in GI_HOME GI_VERSION DB_VERSION ORESTART; do
   require_var "${v}"
@@ -42,7 +47,7 @@ for d in ${reco_discovery_string}; do
 done
 
 if (( ${#reco_disk_devices[@]} == 0 )); then
-  log_error "no P2 devices found for RECO"
+  log_error "未找到用于 RECO 的 P2 设备"
   exit 1
 fi
 

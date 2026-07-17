@@ -10,6 +10,9 @@
 #------------------------------------------------------------------------------
 
 # Re-entrancy guard
+# 中文说明：
+# 提供所有 FPP 预配脚本共用的日志、校验和设备辅助函数。
+
 if [[ -n "${__RAC_COMMON_SH_LOADED:-}" ]]; then
   return 0
 fi
@@ -23,9 +26,9 @@ set -o pipefail
 IFS=$'\n\t'
 
 # ANSI colour tags (overridable)
-: "${INFO:=\033[0;34mINFO: \033[0m}"
-: "${ERROR:=\033[1;31mERROR: \033[0m}"
-: "${SUCCESS:=\033[1;32mSUCCESS: \033[0m}"
+: "${INFO:=\033[0;34m提示：\033[0m}"
+: "${ERROR:=\033[1;31m错误：\033[0m}"
+: "${SUCCESS:=\033[1;32m成功：\033[0m}"
 
 log_info()    { printf '%b%s: %s\n' "$INFO"    "$(date '+%F %T')" "$*"; }
 log_error()   { printf '%b%s: %s\n' "$ERROR"   "$(date '+%F %T')" "$*" >&2; }
@@ -40,7 +43,7 @@ log_section() {
 # ERR trap — surfaces the exact failure site
 __rac_on_err() {
   local exit_code=$?
-  log_error "command failed (exit=${exit_code}) at ${BASH_SOURCE[1]:-?}:${BASH_LINENO[0]:-?} — '${BASH_COMMAND}'"
+  log_error "命令失败（exit=${exit_code}），位置 ${BASH_SOURCE[1]:-?}:${BASH_LINENO[0]:-?} —— '${BASH_COMMAND}'"
   exit "${exit_code}"
 }
 trap __rac_on_err ERR
@@ -48,19 +51,20 @@ trap __rac_on_err ERR
 # Runtime env file. Lives on the guest filesystem (not /vagrant) so the
 # oracle/grid users can source it without the provider-specific
 # synced-folder permission quirks.
+# 中文：统一加载运行时环境，确保后续脚本使用相同变量集。
 : "${RAC_SETUP_ENV_FILE:=/etc/opt/oracle-rac/setup.env}"
 if [[ -r "${RAC_SETUP_ENV_FILE}" ]]; then
   # setup.env is trusted: written by this project's setup.sh
   # shellcheck disable=SC1090
   . "${RAC_SETUP_ENV_FILE}"
 elif [[ -e "${RAC_SETUP_ENV_FILE}" ]]; then
-  log_error "setup env '${RAC_SETUP_ENV_FILE}' is not readable by user '$(id -un)'"
+  log_error "用户 '$(id -un)' 无法读取安装环境文件 '${RAC_SETUP_ENV_FILE}'"
   exit 1
 fi
 
 require_root() {
   if [[ "$(id -u)" -ne 0 ]]; then
-    log_error "this script must run as root"
+    log_error "该脚本必须以 root 身份运行"
     exit 1
   fi
 }
@@ -68,7 +72,7 @@ require_root() {
 require_user() {
   local want="$1"
   if [[ "$(id -un)" != "${want}" ]]; then
-    log_error "this script must run as user '${want}' (current: '$(id -un)')"
+    log_error "该脚本必须以用户 '${want}' 运行（当前用户：'$(id -un)'）"
     exit 1
   fi
 }
@@ -76,7 +80,7 @@ require_user() {
 require_var() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
-    log_error "required variable '${name}' is not set"
+    log_error "必需变量 '${name}' 未设置"
     exit 1
   fi
 }
@@ -86,14 +90,14 @@ device_prefix_for_provider() {
   case "${provider}" in
     libvirt)    printf '%s\n' 'vd' ;;
     virtualbox) printf '%s\n' 'sd' ;;
-    *)          log_error "unsupported provider '${provider}'"; return 1 ;;
+    *)          log_error "不支持的 provider：'${provider}'"; return 1 ;;
   esac
 }
 
 disk_suffix_from_index() {
   local idx="$1"
   if ! [[ "${idx}" =~ ^[0-9]+$ ]]; then
-    log_error "disk index must be a non-negative integer (got: '${idx}')"
+    log_error "磁盘索引必须是非负整数（实际值：'${idx}'）"
     return 1
   fi
 
@@ -123,7 +127,7 @@ wait_for_block_device() {
     sleep "${delay}"
   done
 
-  log_error "timed out waiting for block device ${path}"
+  log_error "等待块设备 ${path} 超时"
   return 1
 }
 
@@ -143,7 +147,7 @@ chown_block_device() {
   done
 
   if [[ ! -b "${path}" ]]; then
-    log_error "timed out waiting for block device ${path} before chown"
+    log_error "在 chown 前等待块设备 ${path} 超时"
     return 1
   fi
 
@@ -152,13 +156,14 @@ chown_block_device() {
 
 # Verify an installer zip against the project's db_installer.cksum manifest.
 # Args: $1 = zip basename (e.g. LINUX.X64_193000_db_home.zip)
+# 中文：校验安装介质，尽早发现版本或文件损坏问题。
 verify_installer_cksum() {
   local installer="$1"
   local zip_path="/vagrant/ORCL_software/${installer}"
   local manifest="/vagrant/db_installer.cksum"
 
-  [[ -f "${zip_path}" ]] || { log_error "installer zip not found at ${zip_path}"; return 1; }
-  [[ -f "${manifest}" ]] || { log_error "checksum manifest not found at ${manifest}"; return 1; }
+  [[ -f "${zip_path}" ]] || { log_error "未在以下路径找到安装 zip：${zip_path}"; return 1; }
+  [[ -f "${manifest}" ]] || { log_error "未在以下路径找到校验清单：${manifest}"; return 1; }
 
   local expected_crc='' expected_size='' expected_name=''
   local line entry_crc entry_size entry_name
@@ -174,22 +179,22 @@ verify_installer_cksum() {
   done < "${manifest}"
 
   if [[ -z "${expected_crc}" || -z "${expected_size}" ]]; then
-    log_error "no checksum entry for ${installer} found in ${manifest}"
+    log_error "在 ${manifest} 中未找到 ${installer} 的校验记录"
     return 1
   fi
   if ! [[ "${expected_crc}" =~ ^[0-9]+$ && "${expected_size}" =~ ^[0-9]+$ ]]; then
-    log_error "invalid checksum entry for ${installer} in ${manifest}"
+    log_error "${manifest} 中 ${installer} 的校验记录无效"
     return 1
   fi
 
-  log_section "Verifying ${installer} against ${manifest}"
+  log_section "正在根据 ${manifest} 校验 ${installer}"
   local actual_crc actual_size _discard
   IFS=' ' read -r actual_crc actual_size _discard < <(cksum "${zip_path}")
   if [[ "${actual_crc}" != "${expected_crc}" || "${actual_size}" != "${expected_size}" ]]; then
-    log_error "checksum verification failed for ${zip_path} (expected crc=${expected_crc} size=${expected_size} from ${expected_name}, got crc=${actual_crc} size=${actual_size})"
+    log_error "校验 ${zip_path} 失败（期望 crc=${expected_crc} size=${expected_size}，来源 ${expected_name}；实际 crc=${actual_crc} size=${actual_size}）"
     return 1
   fi
-  log_success "Installer checksum verified: ${installer}"
+  log_success "安装介质校验已通过：${installer}"
 }
 
 # Return the udev-backed Oracle ASM disk glob used by this project.
@@ -201,7 +206,7 @@ asm_disk_glob() {
     p1) echo "/dev/ORCL_DISK*_p1" ;;
     p2) echo "/dev/ORCL_DISK*_p2" ;;
     *)
-      log_error "unsupported ASM partition selector '${part}'"
+      log_error "不支持的 ASM 分区选择器：'${part}'"
       return 1
       ;;
   esac

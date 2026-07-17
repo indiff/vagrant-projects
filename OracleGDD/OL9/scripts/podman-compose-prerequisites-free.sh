@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# 中文说明：
+# - 此脚本生成 Podman Compose 所需的环境变量、目录和主机映射文件。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 export PODMANVOLLOC='/scratch/oradata'
 export NETWORK_INTERFACE='eth0'
 export NETWORK_SUBNET="10.0.20.0/20"
@@ -88,6 +92,7 @@ export STANDBY_SERVICE2_PARAMS="service_name=oltp_ro_svc;service_role=standby"
 
 
 # Create network host file
+# 预生成容器网络和数据目录，避免首次启动时缺少挂载点。
 mkdir -p  /opt/containers
 rm -f /opt/containers/shard_host_file && touch /opt/containers/shard_host_file
 sh -c "cat << EOF > /opt/containers/shard_host_file

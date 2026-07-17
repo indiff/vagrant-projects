@@ -8,6 +8,9 @@
 #   configuration after the root scripts have completed.
 #   Runs as the grid user.
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于执行 gridSetup.sh 的配置阶段，并处理常见的返回码。
+
 . /vagrant/scripts/_common.sh
 require_user grid
 for v in GI_HOME GRID_BASE ORA_INVENTORY ORA_LANGUAGES \
@@ -19,6 +22,7 @@ done
 data_disks="$(ls -dm $(asm_disk_glob p1) | tr -d ' \n')"
 discovery_string="$(asm_disk_glob p1)"
 
+# 中文：重用响应参数完成 executeConfigTools 阶段。
 rsp_args=(
   INVENTORY_LOCATION="${ORA_INVENTORY}"
   SELECTED_LANGUAGES="${ORA_LANGUAGES}"
@@ -55,7 +59,7 @@ rsp_args=(
   oracle.install.crs.rootconfig.executeRootScript=false
 )
 
-log_section "Running gridSetup.sh -executeConfigTools"
+log_section "正在运行 gridSetup.sh -executeConfigTools"
 gridsetup_log="$(mktemp /tmp/gridSetup-executeConfigTools.XXXXXX.log)"
 if "${GI_HOME}/gridSetup.sh" \
      -silent -executeConfigTools \
@@ -67,16 +71,16 @@ else
 fi
 
 case "${rc}" in
-  0) log_success "gridSetup.sh -executeConfigTools completed" ;;
-  6) log_info    "gridSetup.sh -executeConfigTools completed with warnings (exit=6)" ;;
+  0) log_success "gridSetup.sh -executeConfigTools 已完成" ;;
+  6) log_info    "gridSetup.sh -executeConfigTools 已完成 with warnings (exit=6)" ;;
   255)
     if grep -Fq '[INS-43080]' "${gridsetup_log}" \
        && grep -Fq 'Some of the configuration assistants failed, were cancelled or skipped.' "${gridsetup_log}"; then
-      log_info "gridSetup.sh -executeConfigTools reported INS-43080 (exit=255); continuing and letting subsequent GI checks validate the stack"
+      log_info "gridSetup.sh -executeConfigTools 报告 INS-43080（exit=255）；继续执行，并让后续 GI 检查验证整体状态"
     else
-      log_error "gridSetup.sh -executeConfigTools failed with exit=${rc}"
+      log_error "gridSetup.sh -executeConfigTools 执行失败，exit=${rc}"
       exit "${rc}"
     fi
     ;;
-  *) log_error   "gridSetup.sh -executeConfigTools failed with exit=${rc}"; exit "${rc}" ;;
+  *) log_error   "gridSetup.sh -executeConfigTools 执行失败，exit=${rc}"; exit "${rc}" ;;
 esac

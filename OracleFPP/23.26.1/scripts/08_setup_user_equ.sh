@@ -13,12 +13,15 @@
 #     $3 = node1 hostname
 #     $4 = node2 hostname
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于安全地包装 expect 调用，避免密码出现在进程参数中。
+
 . /vagrant/scripts/_common.sh
 require_root
 require_var GI_HOME
 
 if [[ $# -ne 4 ]]; then
-  log_error "usage: $0 <user> <password> <node1> <node2>"
+  log_error "用法：$0 <user> <password> <node1> <node2>"
   exit 1
 fi
 
@@ -29,13 +32,14 @@ node2="$4"
 ssh_setup="${GI_HOME}/oui/prov/resources/scripts/sshUserSetup.sh"
 
 if [[ ! -x "${ssh_setup}" ]]; then
-  log_error "sshUserSetup.sh not found or not executable: ${ssh_setup}"
+  log_error "未找到 sshUserSetup.sh，或其不可执行：${ssh_setup}"
   exit 1
 fi
 
-log_info "Configuring SSH equivalence for '${user}' between ${node1} and ${node2}"
+log_info "正在为 '${user}' 在 ${node1} 与 ${node2} 之间配置 SSH 互信"
 
 # Pass the password through the environment so it is not visible in 'ps'.
+# 中文：通过环境变量传递密码，避免出现在进程参数列表中。
 RAC_USER_PASSWORD="${password}" \
   expect -f /vagrant/scripts/08_setup_user_equ.expect \
     "${user}" "${node1}" "${node2}" "${ssh_setup}"

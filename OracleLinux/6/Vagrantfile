@@ -18,6 +18,10 @@
 # vi: set ft=ruby :
 
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+# 中文说明：
+# - 此 Vagrantfile 用于创建 Oracle Linux 演示虚拟机，并按需启用扩展预配脚本。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 VAGRANTFILE_API_VERSION = "2"
 
 # Box metadata location and box name
@@ -27,6 +31,7 @@ BOX_NAME = "oraclelinux/6"
 # define hostname
 NAME = "ol6-vagrant"
 
+# 根据 provider 和网络配置动态生成虚拟机定义。
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = BOX_NAME
   config.vm.box_url = "#{BOX_URL}/#{BOX_NAME}.json"
@@ -42,14 +47,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # add proxy configuration from host env - optional
-  if Vagrant.has_plugin?("vagrant-proxyconf")
-    puts "getting Proxy Configuration from Host..."
+    # 仅在宿主机已定义代理时，才把代理配置同步到虚拟机。
+if Vagrant.has_plugin?("vagrant-proxyconf")
+    puts "正在从宿主机获取代理配置..."
     if ENV["http_proxy"]
-      puts "http_proxy: " + ENV["http_proxy"]
+      puts "http_proxy：" + ENV["http_proxy"]
       config.proxy.http     = ENV["http_proxy"]
     end
     if ENV["https_proxy"]
-      puts "https_proxy: " + ENV["https_proxy"]
+      puts "https_proxy：" + ENV["https_proxy"]
       config.proxy.https    = ENV["https_proxy"]
     end
     if ENV["no_proxy"]
@@ -58,7 +64,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   else
     ["http_proxy", "https_proxy"].each do |proxy_var|
       if ENV[proxy_var]
-        puts 'To enable proxies in your VM, install the vagrant-proxyconf plugin'
+        puts '如需在虚拟机中启用代理，请安装 vagrant-proxyconf 插件'
         break
       end
     end
@@ -71,13 +77,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # config.vm.network "forwarded_port", guest: 22, host: 2220
 
   # Provision everything on the first run
-  config.vm.provision "shell", path: "scripts/install.sh"
+    # 基础系统准备完成后，再串联功能扩展脚本。
+config.vm.provision "shell", path: "scripts/install.sh"
   if Vagrant.has_plugin?("vagrant-reload")
-    config.vm.provision "shell", inline: "echo 'Reloading your VM to activate the latest kernel'"
+    config.vm.provision "shell", inline: "echo '正在重新加载虚拟机以启用最新内核'"
     config.vm.provision :reload
   else
-    config.vm.provision "shell", inline: "echo 'You need to reload your VM to activate the latest kernel'"
+    config.vm.provision "shell", inline: "echo '你需要重新加载虚拟机以启用最新内核'"
   end
-  config.vm.provision "shell", inline: "echo 'INSTALLER: Installation complete, Oracle Linux 6 ready to use!'"
+  config.vm.provision "shell", inline: "echo '安装程序：安装完成，Oracle Linux 6 已可使用！'"
 
 end

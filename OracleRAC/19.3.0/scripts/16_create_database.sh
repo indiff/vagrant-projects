@@ -6,7 +6,12 @@
 # 16_create_database.sh
 #   Create the RAC / RACOne / SI database via dbca (silent). Runs as oracle.
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本通过 dbca 静默创建 RAC、RAC One Node 或单实例数据库。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_user oracle
 for v in DB_HOME DB_NAME DB_TYPE CDB ORESTART SYS_PASSWORD \
          NODE1_HOSTNAME; do
@@ -56,7 +61,7 @@ case "${DB_TYPE}" in
     dbca_args+=(-databaseConfigType SINGLE)
     ;;
   *)
-    log_error "unexpected DB_TYPE='${DB_TYPE}'"
+    log_error "未预期的 DB_TYPE='${DB_TYPE}'"
     exit 1
     ;;
 esac
@@ -70,6 +75,6 @@ if [[ "${DB_TYPE}" == "RAC" || "${DB_TYPE}" == "RACONE" ]]; then
   fi
 fi
 
-log_section "Running dbca (silent, createDatabase)"
+log_section "正在运行 dbca（静默模式，createDatabase）"
 "${DB_HOME}/bin/dbca" "${dbca_args[@]}"
-log_success "Database ${DB_NAME} created"
+log_success "数据库 ${DB_NAME} 已创建"

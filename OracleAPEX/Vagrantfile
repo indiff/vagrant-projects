@@ -49,6 +49,10 @@
 ### This script is NOT supported by Oracle World Wide Technical Support.
 ### The script has been tested and appears to work as intended.
 
+# 中文说明：
+# - 该文件定义 Oracle Database XE、APEX 与 ORDS 的单机实验环境。
+# - 会先推导时区，再按顺序执行系统、数据库、APEX 和 ORDS 预配。
+
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
@@ -66,6 +70,7 @@ NAME = "oracle-18c-apex"
 ui = Vagrant::UI::Prefixed.new(Vagrant::UI::Colored.new, "vagrant")
 
 # get host time zone for setting VM time zone, if possible
+# 中文：尽量继承宿主机时区，避免数据库和 APEX 时间显示不一致。
 # can override in env section below
 offset_sec = Time.now.gmt_offset
 if (offset_sec % (60 * 60)) == 0
@@ -92,12 +97,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # add proxy configuration from host env - optional
+  # 中文：可选继承宿主机代理，便于下载安装数据库相关依赖。
   if Vagrant.has_plugin?("vagrant-proxyconf")
-    ui.info "Getting Proxy Configuration from Host..."
+    ui.info "正在从宿主机获取代理配置..."
     has_proxy = false
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTP proxy: " + proxy
+        ui.info "HTTP 代理：" + proxy
         config.proxy.http = proxy
         has_proxy = true
         break
@@ -106,7 +112,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTPS proxy: " + proxy
+        ui.info "HTTPS 代理：" + proxy
         config.proxy.https = proxy
         has_proxy = true
         break
@@ -119,7 +125,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ["no_proxy", "NO_PROXY"].each do |proxy_var|
         if ENV[proxy_var]
           no_proxy = ENV[proxy_var]
-          ui.info "No proxy: " + no_proxy
+          ui.info "不使用代理：" + no_proxy
           no_proxy += ","
           break
         end
@@ -129,7 +135,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   else
     ["http_proxy", "HTTP_PROXY", "https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if ENV[proxy_var]
-        ui.warn 'To enable proxies in your VM, install the vagrant-proxyconf plugin'
+        ui.warn '如需在虚拟机内启用代理，请安装 vagrant-proxyconf 插件'
         break
       end
     end
@@ -148,6 +154,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", path: "scripts/install.sh"
 
   # Provision Oracle Database on the first run
+  # 中文：按“系统 → 数据库 → APEX → ORDS”的顺序完成整套环境部署。
   config.vm.provision "shell", path: "scripts/database.sh", env:
     {
        "ORACLE_CHARACTERSET" => "AL32UTF8",

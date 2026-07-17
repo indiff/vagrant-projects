@@ -21,9 +21,14 @@
 #    scoter     03/19/19 - Creation
 #
 
+# 中文说明：
+# - 安装并配置 Oracle APEX。
+# - 准备表空间、创建管理员账号并补充网络 ACL。
+
 . /home/oracle/.bashrc 
 
 export ORACLE_PWD=`cat /vagrant/apex-pwd`
+# 中文：自动识别 PDB 名称，后续 APEX 安装全部针对该 PDB 执行。
 ORACLE_PDB="`ls -dl $ORACLE_BASE/oradata/$ORACLE_SID/*/ | grep -v pdbseed | awk '{print $9}' | cut -d/ -f6`"
 echo "export ORACLE_PDB=$ORACLE_PDB" >> /home/oracle/.bashrc
 
@@ -32,7 +37,7 @@ cd $ORACLE_HOME
 APEX_INSTALL=$(find /vagrant -maxdepth 1 -name "apex_*.*.zip" -type f | tail -1)
 
 if [[ -z ${APEX_INSTALL} || ! -r "${APEX_INSTALL}" ]]; then
-  echo 'INSTALLER: Could not find APEX installer file. Exiting.'
+  echo 'INSTALLER：未找到 APEX 安装文件，正在退出。'
   exit 1
 fi
 
@@ -40,9 +45,10 @@ unzip $APEX_INSTALL
 chown -R oracle:oinstall $ORACLE_HOME/apex
 cd -
 
-echo 'INSTALLER: Updated APEX extracted to the ORACLE_HOME'
+echo 'INSTALLER：已将新版 APEX 解压到 ORACLE_HOME'
 
 # Prepare APEX tablespaces
+# 中文：提前扩容系统表空间并单独创建 APEX 表空间。
 su -l oracle -c "sqlplus / as sysdba <<EOF
 	ALTER DATABASE DATAFILE '$ORACLE_BASE/oradata/$ORACLE_SID/system01.dbf' resize 1024m;
 	ALTER DATABASE DATAFILE '$ORACLE_BASE/oradata/$ORACLE_SID/sysaux01.dbf' resize 1024m;
@@ -52,7 +58,7 @@ su -l oracle -c "sqlplus / as sysdba <<EOF
 	exit;
 EOF"
 
-echo 'INSTALLER: APEX tablespaces created'
+echo 'INSTALLER：APEX 表空间已创建'
 
 # Install APEX into the PDB Oracle Database
 su -l oracle -c "cd $ORACLE_HOME/apex; sqlplus / as sysdba <<EOF
@@ -61,7 +67,7 @@ su -l oracle -c "cd $ORACLE_HOME/apex; sqlplus / as sysdba <<EOF
 	exit;
 EOF"
 
-echo 'INSTALLER: Oracle APEX Installation completed'
+echo 'INSTALLER：Oracle APEX 安装已完成'
 
 # unlock APEX_PUBLIC_USER
 su -l oracle -c "cd $ORACLE_HOME/apex; sqlplus / as sysdba <<EOF
@@ -95,6 +101,7 @@ su -l oracle -c "cd $ORACLE_HOME/apex; sqlplus / as sysdba <<EOF
 EOF"
 
 # Create a network ACE for APEX (this is used when consuming Web services or sending outbound mail)
+# 中文：允许 APEX 访问外部网络资源，例如 Web 服务和邮件网关。
 cat > /tmp/apex-ace.sql << EOF
         alter session set container=$ORACLE_PDB;
         declare
@@ -119,4 +126,4 @@ EOF
 su -l oracle -c "sqlplus / as sysdba @/tmp/apex-ace.sql"
 rm -f /tmp/apex-ace.sql
 
-echo 'INSTALLER: Oracle APEX Configuration completed'
+echo 'INSTALLER：Oracle APEX 配置已完成'

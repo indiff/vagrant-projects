@@ -6,10 +6,15 @@
 # 01_install_os_packages.sh
 #   Installs base packages and the Oracle preinstall bundle for RAC 23ai on OL9.
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本安装 Oracle RAC 预配所需的系统软件包与基础依赖。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_root
 
-log_section "Installing base packages"
+log_section "正在安装基础软件包"
 base_packages=(
   expect
   lvm2
@@ -23,16 +28,16 @@ base_packages=(
 
 yum install -y "${base_packages[@]}"
 
-log_section "Installing oracle-database-preinstall-21c"
+log_section "正在安装 oracle-database-preinstall-21c"
 yum install -y oracle-database-preinstall-21c
 
-log_section "Installing cluster prerequisites"
+log_section "正在安装集群前置依赖"
 # libnsl provides libnsl.so.1 for Oracle 21c's bundled perl on OL8 (not pulled
 # in by oracle-database-preinstall-21c).
 yum install -y bc ksh libaio libaio-devel libnsl net-tools nfs-utils \
                policycoreutils-python-utils sysstat smartmontools chrony \
                dnsmasq bind-utils
 
-log_section "Disabling firewalld"
+log_section "正在禁用 firewalld"
 systemctl stop    firewalld 2>/dev/null || true
 systemctl disable firewalld 2>/dev/null || true

@@ -13,6 +13,10 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# 中文说明：
+# - 该文件定义 Container Tools 实验环境的基础虚拟机。
+# - 会根据宿主机代理设置完成网络访问，并在首次启动时执行安装脚本。
+
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
@@ -35,9 +39,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Set proxies if vagrant-proxyconf is installed
   if Vagrant.has_plugin?("vagrant-proxyconf")
+    # 中文：继承宿主机代理，确保软件仓库和镜像源可访问。
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        puts "HTTP proxy: " + proxy
+        puts "HTTP 代理：" + proxy
         config.proxy.http = ensure_scheme(proxy)
         break
       end
@@ -45,7 +50,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        puts "HTTPS proxy: " + proxy
+        puts "HTTPS 代理：" + proxy
         config.proxy.https = ensure_scheme(proxy)
         break
       end
@@ -58,7 +63,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ["no_proxy", "NO_PROXY"].each do |proxy_var|
       if ENV[proxy_var]
         no_proxy = ENV[proxy_var]
-        puts "No proxy: " + no_proxy
+        puts "不使用代理：" + no_proxy
         no_proxy += ','
         break
       end
@@ -67,6 +72,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # change memory size
+  # 中文：首次启动时一次性完成环境初始化。
   config.vm.provider "virtualbox" do |v|
     v.memory = 2048
     v.name = NAME

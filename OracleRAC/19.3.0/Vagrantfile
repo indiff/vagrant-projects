@@ -15,6 +15,10 @@
 #           RAC Pack, Cloud Innovation and Solution Engineering Team
 #------------------------------------------------------------------------------
 
+# 中文说明：
+# - 此 Vagrantfile 负责校验 Oracle RAC 实验参数，并为双节点或 Oracle Restart 拓扑下发预配变量。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 require 'yaml'
 require 'ipaddr'
 
@@ -41,14 +45,14 @@ DB_MAJOR   = '19'
 puts ""
 puts "---------------------------------------------------------------"
 puts "  #{PROJECT_TITLE}"
-puts "  Vagrant project for VirtualBox or KVM/libvirt"
+puts "  适用于 VirtualBox 或 KVM/libvirt 的 Vagrant 项目"
 puts "  Copyright (c) 2020-2026 Oracle and/or its affiliates"
 puts "---------------------------------------------------------------"
 puts ""
 
 # --------------------------- Helpers -----------------------------------------
 def fatal(msg)
-  warn "ERROR: #{msg}"
+  warn "错误：#{msg}"
   exit 1
 end
 
@@ -60,7 +64,7 @@ def fetch_required(hash, *path)
   node = hash
   path.each do |key|
     unless node.is_a?(Hash) && node.key?(key)
-      fatal "missing required config key: #{path.map(&:to_s).join('.')}"
+      fatal "缺少必需的配置键：#{path.map(&:to_s).join('.')}"
     end
     node = node[key]
   end
@@ -91,12 +95,14 @@ def verify_checksum_entry(checksum_path, installer)
   false
 end
 
+# 先从 YAML 中读取实验参数，再进行版本和拓扑校验。
 # --------------------------- Config load -------------------------------------
 config_path = File.expand_path('config/vagrant.yml', __dir__)
 fatal "config file not found: #{config_path}" unless File.exist?(config_path)
 
 begin
-  params = YAML.load_file(config_path)
+  # 按配置文件集中读取实验参数，后续统一下发给虚拟机和脚本。
+params = YAML.load_file(config_path)
 rescue => e
   fatal "failed to parse #{config_path}: #{e.message}"
 end
@@ -148,33 +154,33 @@ var_cdb             = fetch_required(params, 'env', 'cdb')
 
 # --------------------------- Validation --------------------------------------
 unless %w[libvirt virtualbox].include?(var_provider_name)
-  fatal "'env.provider' must be 'libvirt' or 'virtualbox' (got: '#{var_provider_name}')"
+  fatal "'env.provider' 必须是 'libvirt' 或 'virtualbox'（当前值：'#{var_provider_name}'）"
 end
 
 unless var_prefix_name.match?(/\A[0-9a-zA-Z-]{1,14}\z/)
-  fatal "'env.prefix_name' must be 1-14 chars of [0-9a-zA-Z-] (got: '#{var_prefix_name}')"
+  fatal "'env.prefix_name' 必须是 1 到 14 个 [0-9a-zA-Z-] 字符（当前值：'#{var_prefix_name}'）"
 end
 
-fatal "'host1.mem_size' must be >= 6144 MB (got: #{var_vm1_mem_size})" if var_vm1_mem_size < 6144
-fatal "'host2.mem_size' must be >= 6144 MB (got: #{var_vm2_mem_size})" if var_vm2_mem_size < 6144
-fatal "'host1.cpus' must be >= 1 (got: #{var_vm1_cpus})"               if var_vm1_cpus    < 1
-fatal "'host2.cpus' must be >= 1 (got: #{var_vm2_cpus})"               if var_vm2_cpus    < 1
+fatal "'host1.mem_size' 必须 >= 6144 MB（当前值：#{var_vm1_mem_size}）" if var_vm1_mem_size < 6144
+fatal "'host2.mem_size' 必须 >= 6144 MB（当前值：#{var_vm2_mem_size}）" if var_vm2_mem_size < 6144
+fatal "'host1.cpus' 必须 >= 1（当前值：#{var_vm1_cpus}）"               if var_vm1_cpus    < 1
+fatal "'host2.cpus' 必须 >= 1（当前值：#{var_vm2_cpus}）"               if var_vm2_cpus    < 1
 
-[true, false].include?(var_cdb)      || fatal("'env.cdb' must be true or false (got: #{var_cdb.inspect})")
-[true, false].include?(var_nomgmtdb) || fatal("'env.nomgmtdb' must be true or false (got: #{var_nomgmtdb.inspect})")
-[true, false].include?(var_orestart) || fatal("'env.orestart' must be true or false (got: #{var_orestart.inspect})")
+[true, false].include?(var_cdb)      || fatal("'env.cdb' 必须是 true 或 false（当前值：#{var_cdb.inspect}）")
+[true, false].include?(var_nomgmtdb) || fatal("'env.nomgmtdb' 必须是 true 或 false（当前值：#{var_nomgmtdb.inspect}）")
+[true, false].include?(var_orestart) || fatal("'env.orestart' 必须是 true 或 false（当前值：#{var_orestart.inspect}）")
 
 unless %w[RAC RACONE SI].include?(var_db_type)
-  fatal "'env.db_type' must be 'RAC', 'RACONE' or 'SI' (got: '#{var_db_type}')"
+  fatal "'env.db_type' 必须是 'RAC'、'RACONE' 或 'SI'（当前值：'#{var_db_type}'）"
 end
 
 if var_orestart == true && var_db_type != 'SI'
-  fatal "'env.orestart'=true supports only db_type='SI' (got: '#{var_db_type}')"
+  fatal "当 'env.orestart'=true 时仅支持 db_type='SI'（当前值：'#{var_db_type}'）"
 end
 
-fatal "'env.p1_ratio' must be between 10 and 80 (got: #{var_p1_ratio})"  unless (10..80).cover?(var_p1_ratio)
-fatal "'env.asm_disk_num' must be >= 4 (got: #{var_asm_disk_num})"       if var_asm_disk_num  < 4
-fatal "'env.asm_disk_size' must be >= 10 GB (got: #{var_asm_disk_size})" if var_asm_disk_size < 10
+fatal "'env.p1_ratio' 必须介于 10 到 80 之间（当前值：#{var_p1_ratio}）"  unless (10..80).cover?(var_p1_ratio)
+fatal "'env.asm_disk_num' 必须 >= 4（当前值：#{var_asm_disk_num}）"       if var_asm_disk_num  < 4
+fatal "'env.asm_disk_size' 必须 >= 10 GB（当前值：#{var_asm_disk_size}）" if var_asm_disk_size < 10
 
 ip_fields = {
   'host1.public_ip'  => var_vm1_public_ip,
@@ -190,35 +196,36 @@ unless var_orestart == true
   ip_fields['host2.vip_ip']     = var_vm2_vip_ip
 end
 ip_fields.each do |label, val|
-  fatal "#{label} is not a valid IP address (got: '#{val}')" unless valid_ip?(val)
+  fatal "#{label} 不是有效的 IP 地址（当前值：'#{val}'）" unless valid_ip?(val)
 end
 
 if var_cdb == true
-  fatal "'env.pdb_name' is required when cdb=true"     if var_pdb_name.to_s.empty?
-  fatal "'env.pdb_password' is required when cdb=true" if var_pdb_password.to_s.empty?
+  fatal "当 cdb=true 时必须设置 'env.pdb_name'"     if var_pdb_name.to_s.empty?
+  fatal "当 cdb=true 时必须设置 'env.pdb_password'" if var_pdb_password.to_s.empty?
 end
 
 # Installer presence + filename prefix + checksum manifest entry
 gi_zip_path = File.expand_path("./ORCL_software/#{var_gi_software}", __dir__)
 db_zip_path = File.expand_path("./ORCL_software/#{var_db_software}", __dir__)
-fatal "GI installer zip not found: #{gi_zip_path}\n  Place the Oracle 19c Grid Infrastructure zip into ORCL_software/." unless File.exist?(gi_zip_path)
-fatal "DB installer zip not found: #{db_zip_path}\n  Place the Oracle 19c Database zip into ORCL_software/."            unless File.exist?(db_zip_path)
+fatal "未找到 GI 安装 zip 包：#{gi_zip_path}\n  请将对应版本的 Oracle Grid Infrastructure zip 放入 ORCL_software/。" unless File.exist?(gi_zip_path)
+fatal "未找到 DB 安装 zip 包：#{db_zip_path}\n  请将对应版本的 Oracle Database zip 放入 ORCL_software/。"            unless File.exist?(db_zip_path)
 
 unless var_gi_software.start_with?(EXPECTED_GI_SOFTWARE_PREFIX)
-  fatal "'env.gi_software' (#{var_gi_software}) does not match this project (expected prefix: #{EXPECTED_GI_SOFTWARE_PREFIX})"
+  fatal "'env.gi_software' (#{var_gi_software}) 与当前项目不匹配（期望前缀：#{EXPECTED_GI_SOFTWARE_PREFIX}）"
 end
 unless var_db_software.start_with?(EXPECTED_DB_SOFTWARE_PREFIX)
-  fatal "'env.db_software' (#{var_db_software}) does not match this project (expected prefix: #{EXPECTED_DB_SOFTWARE_PREFIX})"
+  fatal "'env.db_software' (#{var_db_software}) 与当前项目不匹配（期望前缀：#{EXPECTED_DB_SOFTWARE_PREFIX}）"
 end
 
 checksum_path = File.expand_path('./db_installer.cksum', __dir__)
-fatal "installer checksum file not found: #{checksum_path}" unless File.exist?(checksum_path)
-fatal "no checksum entry for '#{var_gi_software}' found in #{checksum_path}\n  Run:  cksum ORCL_software/#{var_gi_software}  and paste the result." unless verify_checksum_entry(checksum_path, var_gi_software)
-fatal "no checksum entry for '#{var_db_software}' found in #{checksum_path}\n  Run:  cksum ORCL_software/#{var_db_software}  and paste the result." unless verify_checksum_entry(checksum_path, var_db_software)
+fatal "未找到安装介质校验文件：#{checksum_path}" unless File.exist?(checksum_path)
+fatal "在 #{checksum_path} 中找不到 '#{var_gi_software}' 的校验条目\n  请运行：cksum ORCL_software/#{var_gi_software}，然后粘贴结果。" unless verify_checksum_entry(checksum_path, var_gi_software)
+fatal "在 #{checksum_path} 中找不到 '#{var_db_software}' 的校验条目\n  请运行：cksum ORCL_software/#{var_db_software}，然后粘贴结果。" unless verify_checksum_entry(checksum_path, var_db_software)
 
+# provider 相关设置会影响磁盘命名、共享目录和插件依赖。
 # --------------------------- Provider setup ----------------------------------
 provider = var_provider_name.to_sym
-puts "Provider: #{provider}"
+puts "Provider：#{provider}"
 puts ""
 
 box_disks_num = 1
@@ -228,9 +235,9 @@ begin
   boxes_out = `vagrant box list 2>/dev/null`
   have_box  = boxes_out.lines.any? { |l| l.include?("#{BOX_NAME} (#{var_provider_name},") }
   unless have_box
-    puts "NOTE: '#{BOX_NAME}' is not cached for provider '#{var_provider_name}'."
-    puts "      Vagrant will download it now; expect a multi-GB transfer from yum.oracle.com."
-    puts "      To pre-download (interactive progress), run in another shell:"
+    puts "注意：provider '#{var_provider_name}' 尚未缓存 '#{BOX_NAME}'。"
+    puts "      Vagrant 现在会开始下载；预计会从 yum.oracle.com 传输数 GB 数据。"
+    puts "      如需提前下载（带交互进度），请在另一个 shell 中运行："
     puts "        vagrant box add #{BOX_NAME} #{BOX_URL} --provider=#{var_provider_name}"
     puts ""
   end
@@ -256,7 +263,7 @@ if var_provider_name == 'virtualbox'
   var_asm_disk_path  = fetch_optional(params, 'env',   'asm_disk_path',  default: '')
 
   unless %w[on off].include?(var_non_rotational)
-    fatal "'env.non_rotational' must be 'on' or 'off' (got: '#{var_non_rotational}')"
+    fatal "'env.non_rotational' 必须是 'on' 或 'off'（当前值：'#{var_non_rotational}'）"
   end
   if var_group == false || var_group.to_s.strip.empty?
     # Keep VirtualBox groups opt-in. Setting a group moves the VM directory on
@@ -278,9 +285,9 @@ required_plugins << 'vagrant-libvirt' if var_provider_name == 'libvirt'
 
 required_plugins.each do |plugin|
   unless Vagrant.has_plugin?(plugin)
-    puts "Installing missing Vagrant plugin: #{plugin}"
+    puts "正在安装缺失的 Vagrant 插件：#{plugin}"
     unless system("vagrant plugin install #{plugin}")
-      fatal "failed to install Vagrant plugin '#{plugin}'"
+      fatal "安装 Vagrant 插件 '#{plugin}' 失败"
     end
   end
 end
@@ -296,6 +303,7 @@ else
 end
 
 # --------------------------- VM definition -----------------------------------
+# 根据 provider 和网络配置动态生成虚拟机定义。
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box              = BOX_NAME
   config.vm.box_url          = BOX_URL

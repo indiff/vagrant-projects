@@ -7,9 +7,14 @@
 # _common.sh
 #   Shared helpers for all RAC provisioning scripts.
 #   Must be sourced, not executed:  . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 #------------------------------------------------------------------------------
 
 # Re-entrancy guard
+# 中文说明：
+# - 此脚本提供 RAC 预配流程共享的日志、校验、磁盘解析和校验和工具函数。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 if [[ -n "${__RAC_COMMON_SH_LOADED:-}" ]]; then
   return 0
 fi
@@ -23,9 +28,9 @@ set -o pipefail
 IFS=$'\n\t'
 
 # ANSI colour tags (overridable)
-: "${INFO:=\033[0;34mINFO: \033[0m}"
-: "${ERROR:=\033[1;31mERROR: \033[0m}"
-: "${SUCCESS:=\033[1;32mSUCCESS: \033[0m}"
+: "${INFO:=\033[0;34m信息：\033[0m}"
+: "${ERROR:=\033[1;31m错误：\033[0m}"
+: "${SUCCESS:=\033[1;32m成功：\033[0m}"
 
 log_info()    { printf '%b%s: %s\n' "$INFO"    "$(date '+%F %T')" "$*"; }
 log_error()   { printf '%b%s: %s\n' "$ERROR"   "$(date '+%F %T')" "$*" >&2; }
@@ -40,7 +45,7 @@ log_section() {
 # ERR trap — surfaces the exact failure site
 __rac_on_err() {
   local exit_code=$?
-  log_error "command failed (exit=${exit_code}) at ${BASH_SOURCE[1]:-?}:${BASH_LINENO[0]:-?} — '${BASH_COMMAND}'"
+  log_error "命令执行失败（exit=${exit_code}），位置 ${BASH_SOURCE[1]:-?}:${BASH_LINENO[0]:-?} —— '${BASH_COMMAND}'"
   exit "${exit_code}"
 }
 trap __rac_on_err ERR
@@ -54,13 +59,13 @@ if [[ -r "${RAC_SETUP_ENV_FILE}" ]]; then
   # shellcheck disable=SC1090
   . "${RAC_SETUP_ENV_FILE}"
 elif [[ -e "${RAC_SETUP_ENV_FILE}" ]]; then
-  log_error "setup env '${RAC_SETUP_ENV_FILE}' is not readable by user '$(id -un)'"
+  log_error "用户 '$(id -un)' 无法读取 setup env '${RAC_SETUP_ENV_FILE}'"
   exit 1
 fi
 
 require_root() {
   if [[ "$(id -u)" -ne 0 ]]; then
-    log_error "this script must run as root"
+    log_error "此脚本必须以 root 身份运行"
     exit 1
   fi
 }
@@ -68,7 +73,7 @@ require_root() {
 require_user() {
   local want="$1"
   if [[ "$(id -un)" != "${want}" ]]; then
-    log_error "this script must run as user '${want}' (current: '$(id -un)')"
+    log_error "此脚本必须以用户 '${want}' 身份运行（当前用户：'$(id -un)'）"
     exit 1
   fi
 }
@@ -76,7 +81,7 @@ require_user() {
 require_var() {
   local name="$1"
   if [[ -z "${!name:-}" ]]; then
-    log_error "required variable '${name}' is not set"
+    log_error "未设置必需变量 '${name}'"
     exit 1
   fi
 }
@@ -86,14 +91,14 @@ device_prefix_for_provider() {
   case "${provider}" in
     libvirt)    printf '%s\n' 'vd' ;;
     virtualbox) printf '%s\n' 'sd' ;;
-    *)          log_error "unsupported provider '${provider}'"; return 1 ;;
+    *)          log_error "不支持的 provider '${provider}'"; return 1 ;;
   esac
 }
 
 disk_suffix_from_index() {
   local idx="$1"
   if ! [[ "${idx}" =~ ^[0-9]+$ ]]; then
-    log_error "disk index must be a non-negative integer (got: '${idx}')"
+    log_error "磁盘索引必须是非负整数（当前值：'${idx}'）"
     return 1
   fi
 
@@ -125,7 +130,7 @@ resolve_disk_device() {
   local prefix letter path
 
   if ! [[ "${idx}" =~ ^[0-9]+$ ]]; then
-    log_error "disk index must be a non-negative integer (got: '${idx}')"
+    log_error "磁盘索引必须是非负整数（当前值：'${idx}'）"
     return 1
   fi
 
@@ -143,23 +148,23 @@ resolve_disk_device() {
       matches=( /dev/disk/by-path/pci-*-ata-"${port}" )
       shopt -u nullglob
       if (( ${#matches[@]} == 0 )); then
-        log_error "no /dev/disk/by-path entry for SATA port index ${idx} (ata-${port})"
+        log_error "SATA 端口索引缺少对应的 /dev/disk/by-path 条目 ${idx} (ata-${port})"
         return 1
       fi
       if (( ${#matches[@]} > 1 )); then
-        log_error "multiple /dev/disk/by-path entries for ata-${port}: ${matches[*]}"
+        log_error "ata- 对应存在多个 /dev/disk/by-path 条目：${port}: ${matches[*]}"
         return 1
       fi
       path="$(readlink -f "${matches[0]}")"
       ;;
     *)
-      log_error "unsupported provider '${provider}'"
+      log_error "不支持的 provider '${provider}'"
       return 1
       ;;
   esac
 
   if [[ ! -b "${path}" ]]; then
-    log_error "resolved device ${path} for disk index ${idx} is not a block device"
+    log_error "为磁盘索引 ${idx} 解析得到的设备 ${path} 不是块设备"
     return 1
   fi
 
@@ -180,7 +185,7 @@ wait_for_block_device() {
     sleep "${delay}"
   done
 
-  log_error "timed out waiting for block device ${path}"
+  log_error "等待块设备 ${path} 超时"
   return 1
 }
 
@@ -200,7 +205,7 @@ chown_block_device() {
   done
 
   if [[ ! -b "${path}" ]]; then
-    log_error "timed out waiting for block device ${path} before chown"
+    log_error "等待块设备 ${path} 超时 before chown"
     return 1
   fi
 
@@ -214,8 +219,8 @@ verify_installer_cksum() {
   local zip_path="/vagrant/ORCL_software/${installer}"
   local manifest="/vagrant/db_installer.cksum"
 
-  [[ -f "${zip_path}" ]] || { log_error "installer zip not found at ${zip_path}"; return 1; }
-  [[ -f "${manifest}" ]] || { log_error "checksum manifest not found at ${manifest}"; return 1; }
+  [[ -f "${zip_path}" ]] || { log_error "未在 ${zip_path} 找到安装 zip 包"; return 1; }
+  [[ -f "${manifest}" ]] || { log_error "未在 ${manifest} 找到校验清单"; return 1; }
 
   local expected_crc='' expected_size='' expected_name=''
   local line entry_crc entry_size entry_name
@@ -231,22 +236,22 @@ verify_installer_cksum() {
   done < "${manifest}"
 
   if [[ -z "${expected_crc}" || -z "${expected_size}" ]]; then
-    log_error "no checksum entry for ${installer} found in ${manifest}"
+    log_error "未在 ${manifest} 中找到 ${installer} 的校验条目"
     return 1
   fi
   if ! [[ "${expected_crc}" =~ ^[0-9]+$ && "${expected_size}" =~ ^[0-9]+$ ]]; then
-    log_error "invalid checksum entry for ${installer} in ${manifest}"
+    log_error "${manifest} 中 ${installer} 的校验条目无效"
     return 1
   fi
 
-  log_section "Verifying ${installer} against ${manifest}"
+  log_section "正在根据 ${manifest} 校验 ${installer}"
   local actual_crc actual_size _discard
   IFS=' ' read -r actual_crc actual_size _discard < <(cksum "${zip_path}")
   if [[ "${actual_crc}" != "${expected_crc}" || "${actual_size}" != "${expected_size}" ]]; then
-    log_error "checksum verification failed for ${zip_path} (expected crc=${expected_crc} size=${expected_size} from ${expected_name}, got crc=${actual_crc} size=${actual_size})"
+    log_error "${zip_path} 的校验失败 (expected crc=${expected_crc} size=${expected_size} from ${expected_name}, got crc=${actual_crc} size=${actual_size})"
     return 1
   fi
-  log_success "Installer checksum verified: ${installer}"
+  log_success "安装介质校验通过：${installer}"
 }
 
 # Return the udev-backed Oracle ASM disk glob used by this project.
@@ -258,7 +263,7 @@ asm_disk_glob() {
     p1) echo "/dev/ORCL_DISK*_p1" ;;
     p2) echo "/dev/ORCL_DISK*_p2" ;;
     *)
-      log_error "unsupported ASM partition selector '${part}'"
+      log_error "不支持的 ASM 分区选择器 '${part}'"
       return 1
       ;;
   esac

@@ -11,7 +11,11 @@
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
 #
 
-echo 'INSTALLER: Enabling MySQL and Software Collection Yum repositories'
+# 中文说明：
+# - 此脚本安装 Apache、MySQL 和 PHP，并生成基础的 LAMP 演示页面。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
+echo '安装程序：正在启用 MySQL 和 Software Collection Yum 仓库'
 
 # install yum-config-manager to get yum repos managed
 yum install yum-utils -y
@@ -22,27 +26,27 @@ yum install -y oracle-softwarecollection-release-el7.x86_64
 # enable MySQL yum repository
 yum install mysql-release-el7.x86_64 -y
 
-echo 'INSTALLER: Installing Apache Web Server from Oracle Linux Software Collections'
+echo '安装程序：正在从 Oracle Linux Software Collections 安装 Apache Web 服务器'
 
 # get Apache2 from software-collections installed and running
 yum install httpd24 -y
 systemctl enable httpd24-httpd
 systemctl start httpd24-httpd
 
-echo 'INSTALLER: Installing MySQL Community Release 8'
+echo '安装程序：正在安装 MySQL Community Release 8'
 
 # get MySQL Community 8
 yum install mysql-community-server.x86_64 mysql-community-client.x86_64 -y
 systemctl enable mysqld
 systemctl start mysqld
 
-echo 'INSTALLER: Installing PHP 7.3 from Oracle Linux Software Collections'
+echo '安装程序：正在从 Oracle Linux Software Collections 安装 PHP 7.3'
 # get PHP 7.0
 yum install rh-php73.x86_64 rh-php73-php rh-php73-php-mysqlnd.x86_64 rh-php73-php-fpm.x86_64 -y
 systemctl enable rh-php73-php-fpm
 systemctl start rh-php73-php-fpm
 
-echo 'INSTALLER: Configuring Apache Server'
+echo '安装程序：正在配置 Apache 服务器'
 cat > /opt/rh/httpd24/root/var/www/html/info.php << EOF
 <?php
 phpinfo();
@@ -51,6 +55,7 @@ EOF
 
 systemctl restart httpd24-httpd
 
+# 生成登录欢迎信息，提示实验环境中已启用的组件。
 cat > /etc/motd << EOF
 
 Welcome to Oracle Linux Server release 7

@@ -12,14 +12,19 @@
 #     $1 = index of the first shared disk (0-based among the VM's disks)
 #     $2 = provider name ('libvirt' or 'virtualbox')
 #------------------------------------------------------------------------------
+# 中文说明：
+# - 此脚本分区共享 ASM 磁盘，并生成稳定的 udev 设备映射。
+# - 仅翻译面向使用者的提示信息，保留命令、变量、路径与配置键原样。
+
 . /vagrant/scripts/_common.sh
+# 共享工具函数负责日志格式、参数校验与磁盘解析。
 require_root
 for v in P1_RATIO ASM_DISK_NUM NODE1_HOSTNAME NODE2_HOSTNAME ORESTART; do
   require_var "${v}"
 done
 
 if [[ $# -lt 2 ]]; then
-  log_error "usage: $0 <first-shared-disk-index> <provider>"
+  log_error "用法：$0 <first-shared-disk-index> <provider>"
   exit 1
 fi
 
@@ -28,17 +33,18 @@ provider="$2"
 
 current_host="$(hostname -s)"
 
+# 清理旧磁盘签名，避免重建实验时残留分区信息干扰。
 clear_block_device_metadata() {
   local dev="$1"
   local wipe_mib="${2:-16}"
   local bytes seek_mib wipe_bytes
 
   if [[ ! -b "${dev}" ]]; then
-    log_error "expected block device ${dev} is missing"
+    log_error "预期的块设备 ${dev} 不存在"
     return 1
   fi
 
-  log_info "clearing stale partition / ASM metadata on ${dev}"
+  log_info "正在清理 ${dev} 上残留的分区 / ASM 元数据"
   wipefs -a -f "${dev}" >/dev/null 2>&1 || true
 
   dd if=/dev/zero of="${dev}" bs=1M count="${wipe_mib}" conv=fsync >/dev/null 2>&1
@@ -67,7 +73,7 @@ drop_stale_partition_mappings() {
     fi
 
     if (( attempt == 1 )); then
-      log_info "dropping stale kernel partition mappings on ${dev}: ${children[*]}"
+      log_info "正在删除 ${dev} 的残留内核分区映射：${children[*]}"
     fi
 
     for child in "${children[@]}"; do
@@ -83,11 +89,12 @@ drop_stale_partition_mappings() {
     sleep "${delay}"
   done
 
-  log_error "timed out removing stale partition mappings from ${dev}"
+  log_error "删除 ${dev} 的残留分区映射超时"
   lsblk -lnpo NAME,TYPE,SIZE "${dev}" || true
   return 1
 }
 
+# 创建分区后再次校验布局，确保后续 udev 规则能稳定匹配。
 shared_disk_has_expected_partitions() {
   local dev="$1"
 
@@ -108,11 +115,11 @@ partition_shared_disk() {
   rc=$?
 
   if shared_disk_has_expected_partitions "${dev}"; then
-    log_info "parted returned exit=${rc} for ${dev}, but the expected GPT layout is on disk; continuing with an explicit reread"
+    log_info "parted 在 ${dev} 上返回 exit=${rc}，但磁盘上的 GPT 布局符合预期；继续显式重新读取分区表"
     return 0
   fi
 
-  log_error "failed to create the expected partition layout on ${dev} (exit=${rc})"
+  log_error "无法在 ${dev} 上创建预期的分区布局（exit=${rc}）"
   return "${rc}"
 }
 
@@ -134,7 +141,7 @@ refresh_partition_devices() {
     sleep "${delay}"
   done
 
-  log_error "timed out waiting for partition devices ${dev}1 and ${dev}2"
+  log_error "等待分区设备 ${dev}1 和 ${dev}2 超时"
   /sbin/partx -s "${dev}" 2>/dev/null || true
   return 1
 }
@@ -163,7 +170,7 @@ if [[ "${partition_here}" == "true" ]]; then
   for dev in "${asm_devices[@]}"; do
     clear_block_device_metadata "${dev}"
     drop_stale_partition_mappings "${dev}"
-    log_info "partitioning ${dev} (P1 = ${P1_RATIO}%, P2 = remainder)"
+    log_info "正在分区 ${dev}（P1 = ${P1_RATIO}% ，P2 = 剩余空间）"
     partition_shared_disk "${dev}"
   done
   sync
@@ -171,7 +178,7 @@ if [[ "${partition_here}" == "true" ]]; then
 fi
 
 # --- udev rules (run on every node) -----------------------------------------
-log_section "Installing udev rules for shared disks"
+log_section "正在为共享磁盘安装 udev 规则"
 udev_file='/etc/udev/rules.d/70-oracle-asm.rules'
 : > "${udev_file}"
 
@@ -187,7 +194,7 @@ for dev in "${asm_devices[@]}"; do
   else
     serial="$(udevadm info --query=all --name="${dev}" | awk -F= '/^E: ID_SERIAL=/{print $2; exit}')"
     if [[ -z "${serial}" ]]; then
-      log_error "could not determine ID_SERIAL for ${dev}"
+      log_error "无法确定 ${dev} 的 ID_SERIAL"
       exit 1
     fi
     # Match by ID_SERIAL only — the sd<letter> kernel name is not stable
@@ -204,7 +211,7 @@ chmod 0644 "${udev_file}"
 udevadm control --reload-rules
 udevadm trigger --subsystem-match=block
 
-log_section "Running partprobe + fixing ownership"
+log_section "正在运行 partprobe 并修正属主"
 i=1
 for dev in "${asm_devices[@]}"; do
   /sbin/partprobe "${dev}" || true

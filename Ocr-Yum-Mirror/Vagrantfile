@@ -18,6 +18,10 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# 中文说明：
+# - 该文件定义 OCR 与 Yum 镜像源实验环境的虚拟机。
+# - 预配顺序依次完成基础系统、Yum 镜像和 OCR 镜像配置。
+
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
@@ -40,11 +44,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 5000, host: 5000
 
   if Vagrant.has_plugin?("vagrant-env")
-    ui.info "Loading environment from .env files"
+    # 中文：优先从 .env 文件读取镜像和网络相关参数。
+    ui.info "正在从 .env 文件加载环境变量"
     config.env.load(".env.local", ".env")
   end
 
   # change memory size
+  # 中文：同时为镜像数据目录附加第二块持久磁盘。
   config.vm.provider "virtualbox" do |v|
     v.memory = 2048
     v.name = NAME
@@ -71,11 +77,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # add proxy configuration from host env - optional
   if Vagrant.has_plugin?("vagrant-proxyconf")
-    ui.info "Getting Proxy Configuration from Host..."
+    ui.info "正在从宿主机获取代理配置..."
     has_proxy = false
     ["http_proxy", "HTTP_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTP proxy: " + proxy
+        ui.info "HTTP 代理：" + proxy
         config.proxy.http = proxy
         has_proxy = true
         break
@@ -84,7 +90,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ["https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if proxy = ENV[proxy_var]
-        ui.info "HTTPS proxy: " + proxy
+        ui.info "HTTPS 代理：" + proxy
         config.proxy.https = proxy
         has_proxy = true
         break
@@ -97,7 +103,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       ["no_proxy", "NO_PROXY"].each do |proxy_var|
         if ENV[proxy_var]
           no_proxy = ENV[proxy_var]
-          ui.info "No proxy: " + no_proxy
+          ui.info "不使用代理：" + no_proxy
           no_proxy += ","
           break
         end
@@ -107,7 +113,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   else
     ["http_proxy", "HTTP_PROXY", "https_proxy", "HTTPS_PROXY"].each do |proxy_var|
       if ENV[proxy_var]
-        ui.warn 'To enable proxies in your VM, install the vagrant-proxyconf plugin'
+        ui.warn '如需在虚拟机内启用代理，请安装 vagrant-proxyconf 插件'
         break
       end
     end
@@ -117,6 +123,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.hostname = NAME
 
   # Provision everything on the first run
+  # 中文：依次完成基础系统、Yum 镜像和 OCR 镜像的初始化。
   config.vm.provision "shell", path: "scripts/install.sh", privileged: false
   
   # Provision everything for OCNE yum-mirror
@@ -126,8 +133,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", path: "scripts/ocr-mirror.sh", privileged: false
 
   # Share Yum mirror and OCNE mirror access
-  config.vm.provision "shell", inline: "echo 'INSTALLER: Oracle Linux Yum Mirror is available at http://<host-machine>:8080/yum/'", privileged: false
-  config.vm.provision "shell", inline: "echo 'INSTALLER: Oracle Container Registry Mirror is available at https://<host-machine>:5000/olcne/'", privileged: false
-  config.vm.provision "shell", inline: "echo 'INSTALLER: Installation complete, Oracle Linux 8 ready to use!'", privileged: false
+  config.vm.provision "shell", inline: "echo 'INSTALLER：Oracle Linux Yum Mirror 可通过 http://<host-machine>:8080/yum/ 访问'", privileged: false
+  config.vm.provision "shell", inline: "echo 'INSTALLER：Oracle Container Registry Mirror 可通过 https://<host-machine>:5000/olcne/ 访问'", privileged: false
+  config.vm.provision "shell", inline: "echo 'INSTALLER：安装完成，Oracle Linux 8 已可使用！'", privileged: false
 
 end

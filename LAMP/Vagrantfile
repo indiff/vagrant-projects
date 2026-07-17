@@ -17,6 +17,10 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# 中文说明：
+# - 该文件定义 Oracle Linux LAMP 虚拟机的资源、端口和预配顺序。
+# - 首次启动会完成系统更新、内核重载提示以及 LAMP 安装。
+
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
@@ -42,14 +46,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   # add proxy configuration from host env - optional
+  # 中文：可选地继承宿主机代理设置，便于联网安装依赖。
   if Vagrant.has_plugin?("vagrant-proxyconf")
-    puts "getting Proxy Configuration from Host..."
+    puts "正在从宿主机获取代理配置..."
     if ENV["http_proxy"]
-      puts "http_proxy: " + ENV["http_proxy"]
+      puts "http_proxy：" + ENV["http_proxy"]
       config.proxy.http     = ENV["http_proxy"]
     end
     if ENV["https_proxy"]
-      puts "https_proxy: " + ENV["https_proxy"]
+      puts "https_proxy：" + ENV["https_proxy"]
       config.proxy.https    = ENV["https_proxy"]
     end
     if ENV["no_proxy"]
@@ -58,7 +63,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   else
     ["http_proxy", "https_proxy"].each do |proxy_var|
       if ENV[proxy_var]
-        puts 'To enable proxies in your VM, install the vagrant-proxyconf plugin'
+        puts '如需在虚拟机内启用代理，请安装 vagrant-proxyconf 插件'
         break
       end
     end
@@ -72,14 +77,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "forwarded_port", guest: 80, host: 8080
 
   # Provision everything on the first run
+  # 中文：按“更新系统 → 安装 LAMP → 输出访问信息”的顺序执行。
   config.vm.provision "shell", path: "scripts/install.sh"
   if Vagrant.has_plugin?("vagrant-reload")
-    config.vm.provision "shell", inline: "echo 'Reloading your VM to activate the latest kernel'"
+    config.vm.provision "shell", inline: "echo '正在重载虚拟机以启用最新内核'"
     config.vm.provision :reload
   else
-    config.vm.provision "shell", inline: "echo 'You need to reload your VM to activate the latest kernel'"
+    config.vm.provision "shell", inline: "echo '你需要重载虚拟机以启用最新内核'"
   end
   config.vm.provision "shell", path: "scripts/lamp.sh"
-  config.vm.provision "shell", inline: "echo 'INSTALLER: Installation complete, Oracle Linux 7 LAMP architecture ready to use!'"
+  config.vm.provision "shell", inline: "echo 'INSTALLER：安装完成，Oracle Linux 7 LAMP 架构已可使用！'"
 
 end

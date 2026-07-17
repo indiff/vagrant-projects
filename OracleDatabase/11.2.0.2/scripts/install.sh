@@ -12,23 +12,27 @@
 # 
 
 # Abort on any error
+# 中文说明：
+# 用于校验安装介质、准备系统依赖，并以静默方式安装或创建 Oracle 数据库。
+
 set -e
 
-echo 'INSTALLER: Started up'
+echo 'INSTALLER: 已启动'
 
+# 中文：先确认安装介质可用，再继续系统与数据库安装。
 # verify that database installer is present and valid
-echo 'INSTALLER: Verifying database installer file'
+echo 'INSTALLER: 正在校验数据库安装文件'
 
 sha256sum --check /vagrant/db_installer.sha256 || {
   cat << EOF
 
-INSTALLER: Database installer file missing or invalid.
-           Destroy this VM (vagrant destroy), then
-           make sure that the database installer file
-           is in the same directory as the Vagrantfile,
-           and that its SHA-256 digest matches the
-           value in the db_installer.sha256 file,
-           before running vagrant up again.
+INSTALLER: 数据库安装文件缺失或无效。
+           请销毁此 VM（vagrant destroy），然后
+           请确认数据库安装文件
+           与 Vagrantfile 位于同一目录中，
+           且其 SHA-256 摘要与
+           db_installer.sha256 文件中的值一致，
+           然后再重新运行 vagrant up。
 
 EOF
   exit 1
@@ -37,24 +41,24 @@ EOF
 # get up to date
 yum upgrade -y
 
-echo 'INSTALLER: System updated'
+echo 'INSTALLER: 系统已更新'
 
 yum install -y bc oracle-database-server-12cR2-preinstall openssl
 
-echo 'INSTALLER: Oracle preinstall and openssl complete'
+echo 'INSTALLER: Oracle 预安装包和 openssl 已安装完成'
 
 # fix locale warning
 yum reinstall -y glibc-common
 echo LANG=en_US.utf-8 >> /etc/environment
 echo LC_ALL=en_US.utf-8 >> /etc/environment
 
-echo 'INSTALLER: Locale set'
+echo 'INSTALLER: 区域设置已完成'
 
 # set system time zone
 sudo timedatectl set-timezone $SYSTEM_TIMEZONE
-echo "INSTALLER: System time zone set to $SYSTEM_TIMEZONE"
+echo "INSTALLER: 系统时区已设置为 $SYSTEM_TIMEZONE"
 
-echo 'INSTALLER: Oracle directories created'
+echo 'INSTALLER: Oracle 目录已创建'
 
 # install Oracle
 unzip /vagrant/oracle-xe-11.2.0-1.0.x86_64.rpm.zip -d /tmp
@@ -63,7 +67,7 @@ chmod -R u+w /tmp/Disk1
 rm -rf /tmp/Disk1
 sudo ln -s /u01/app/oracle /opt/oracle
 
-echo 'INSTALLER: Oracle software installed'
+echo 'INSTALLER: Oracle 软件已安装'
 
 # Auto generate ORACLE PWD if not passed on
 export ORACLE_PWD=${ORACLE_PWD:-"`openssl rand -hex 8`"}
@@ -74,7 +78,7 @@ sed -i -e "s|###LISTENER_PORT###|$LISTENER_PORT|g" /tmp/xe.rsp
 sudo /etc/init.d/oracle-xe configure responseFile=/tmp/xe.rsp
 rm /tmp/xe.rsp
 
-echo 'INSTALLER: Database created'
+echo 'INSTALLER: 数据库已创建'
 
 # set environment variables
 echo "export ORACLE_BASE=/u01/app/oracle" >> /home/oracle/.bashrc
@@ -82,40 +86,41 @@ echo "export ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe" >> /home/oracle/.bas
 echo "export ORACLE_SID=XE" >> /home/oracle/.bashrc
 echo "export PATH=\$PATH:\$ORACLE_HOME/bin" >> /home/oracle/.bashrc
 
-echo 'INSTALLER: Environment variables set'
+echo 'INSTALLER: 环境变量已设置'
 
 sudo cp /vagrant/scripts/setPassword.sh /home/oracle/
 sudo chmod a+rx /home/oracle/setPassword.sh
 
-echo "INSTALLER: setPassword.sh file setup";
+echo "INSTALLER: setPassword.sh 文件已就绪";
 
+# 中文：标准安装结束后，再按顺序执行用户自定义脚本。
 # run user-defined post-setup scripts
-echo 'INSTALLER: Running user-defined post-setup scripts'
+echo 'INSTALLER: 正在运行用户自定义的安装后脚本'
 
 for f in /vagrant/userscripts/*
   do
     case "${f,,}" in
       *.sh)
-        echo "INSTALLER: Running $f"
+        echo "INSTALLER: 正在运行 $f"
         . "$f"
-        echo "INSTALLER: Done running $f"
+        echo "INSTALLER: 已完成 $f"
         ;;
       *.sql)
-        echo "INSTALLER: Running $f"
+        echo "INSTALLER: 正在运行 $f"
         su -l oracle -c "echo 'exit' | sqlplus -s / as sysdba @\"$f\""
-        echo "INSTALLER: Done running $f"
+        echo "INSTALLER: 已完成 $f"
         ;;
       /vagrant/userscripts/put_custom_scripts_here.txt)
         :
         ;;
       *)
-        echo "INSTALLER: Ignoring $f"
+        echo "INSTALLER: 已忽略 $f"
         ;;
     esac
   done
 
-echo 'INSTALLER: Done running user-defined post-setup scripts'
+echo 'INSTALLER: 已完成用户自定义的安装后脚本'
 
-echo "ORACLE PASSWORD FOR SYS AND SYSTEM: $ORACLE_PWD";
+echo "SYS 和 SYSTEM 的 ORACLE 密码：$ORACLE_PWD";
 
-echo "INSTALLER: Installation complete, database ready to use!";
+echo "INSTALLER: 安装完成，数据库已可用！";

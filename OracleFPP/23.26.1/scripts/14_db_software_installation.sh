@@ -6,6 +6,9 @@
 # 15_db_software_installation.sh
 #   Silent, software-only RDBMS install (EE, cluster-aware). Runs as oracle.
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于静默安装数据库软件二进制，而不在此阶段建库。
+
 . /vagrant/scripts/_common.sh
 require_user grid
 for v in DB_HOME DB_BASE ORA_INVENTORY ORA_LANGUAGES \
@@ -13,6 +16,7 @@ for v in DB_HOME DB_BASE ORA_INVENTORY ORA_LANGUAGES \
   require_var "${v}"
 done
 
+# 中文：组装软件安装参数，确保后续 root.sh 有一致的安装目录。
 rsp_args=(
   oracle.install.option=INSTALL_DB_SWONLY
   UNIX_GROUP_NAME=oinstall
@@ -35,7 +39,7 @@ rsp_args=(
   DECLINE_SECURITY_UPDATES=true
 )
 
-log_section "Running runInstaller (software-only, silent)"
+log_section "正在运行 runInstaller（仅安装软件，静默模式）"
 if "${DB_HOME}/runInstaller" \
      -ignorePrereq -waitforcompletion -silent \
      -responseFile "${DB_HOME}/install/response/db_install.rsp" \
@@ -46,7 +50,7 @@ else
 fi
 
 case "${rc}" in
-  0) log_success "runInstaller completed successfully" ;;
-  6) log_info    "runInstaller completed with warnings (exit=6) — expected when -ignorePrereq is set" ;;
-  *) log_error   "runInstaller failed with exit=${rc}"; exit "${rc}" ;;
+  0) log_success "runInstaller 已成功完成" ;;
+  6) log_info    "runInstaller 已完成但带有告警（exit=6）；设置 -ignorePrereq 时属预期情况" ;;
+  *) log_error   "runInstaller 执行失败，exit=${rc}"; exit "${rc}" ;;
 esac

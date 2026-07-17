@@ -17,6 +17,9 @@
 #   Env (secret — not visible in 'ps'):
 #     RAC_USER_PASSWORD   user's OS password
 #------------------------------------------------------------------------------
+# 中文说明：
+# 用于驱动 sshUserSetup.sh，自动完成双机用户免密配置。
+
 set timeout 60
 
 if { [llength $argv] != 4 } {
@@ -35,6 +38,7 @@ if { ![info exists env(RAC_USER_PASSWORD)] } {
 }
 set password $env(RAC_USER_PASSWORD)
 
+# 中文：通过 expect 自动回答 sshUserSetup.sh 的交互提示。
 spawn $setup -user $username -hosts "$node1 $node2" -noPromptPassphrase -advanced
 
 expect {
